@@ -7,10 +7,27 @@ root=$(git rev-parse --show-toplevel)
 has_files() { compgen -G "$1" >/dev/null; }
 
 echo "== Functions"
-(cd "$root/functions" && { [ -d node_modules ] || npm ci; } && npm run build)
-if has_files "$root/functions/src/**/*.test.ts" || has_files "$root/functions/src/*.test.ts"; then
-  (cd "$root/functions" && npm test)
-fi
+(
+  cd "$root/functions"
+  [ -d node_modules ] || npm ci
+  npm run typecheck
+  npm run build
+  npm test
+)
+
+echo "== Security Rules"
+(
+  cd "$root/firebase"
+  firebase emulators:exec --only firestore,storage \
+    "cd '$root/functions' && npm run test:rules"
+)
+
+echo "== Functions integration tests"
+(
+  cd "$root/firebase"
+  firebase emulators:exec --only auth,firestore,functions,storage \
+    "cd '$root/functions' && npm run test:integration"
+)
 
 echo "== Domain"
 (cd "$root/packages/domain" && flutter test --coverage)
