@@ -97,11 +97,11 @@ before(() => {
 
 after(async () => {
   await Promise.all(getApps().map(deleteApp));
-  process.exit(0);
 });
 
 beforeEach(async () => {
   await clearEmulators();
+  await getStorage().bucket().deleteFiles();
   alice = await signedInUser("alice");
   bob = await signedInUser("bob");
   mallory = await signedInUser("mallory");
@@ -136,6 +136,16 @@ describe("createKitchen", () => {
     assert.equal(quick?.data()["category"], "effort");
     assert.ok(tags.size > 30);
     assert.ok(staples.docs.some((staple) => staple.id === "black-pepper"));
+  });
+
+  it("limits how many kitchens a user can have", async () => {
+    await db()
+      .doc(`users/${alice.uid}`)
+      .set({ kitchenIds: Array.from({ length: 10 }, (_, i) => `k${i}`) });
+    await refused(
+      alice.call("createKitchen", { name: "Hemma" }),
+      "failed-precondition",
+    );
   });
 
   it("a user can have several kitchens", async () => {
@@ -235,7 +245,20 @@ describe("leaveKitchen", () => {
     const { kitchenId } = await alice.call("createKitchen", { name: "Hemma" });
     const { token } = await alice.call("createInvite", { kitchenId });
     await alice.call("leaveKitchen", { kitchenId });
-    await refused(bob.call("acceptInvite", { token }), "not-found");
+    assert.equal((await db().doc(`invites/${token}`).get()).exists, false);
+  });
+
+  it("forgets a kitchen that is gone but still listed", async () => {
+    await db().doc(`users/${bob.uid}`).set({ kitchenIds: ["gone"] });
+    await bob.call("leaveKitchen", { kitchenId: "gone" });
+    assert.deepEqual(await kitchenIds(bob.uid), []);
+  });
+
+  it("removes the name of a member who leaves", async () => {
+    const kitchenId = await kitchenWithBob();
+    await bob.call("leaveKitchen", { kitchenId });
+    const names = (await kitchen(kitchenId))?.["memberNames"] as object;
+    assert.deepEqual(Object.keys(names), [alice.uid]);
   });
 
   it("outsiders can't remove anything", async () => {
@@ -283,6 +306,25 @@ describe("deleteAccount", () => {
     assert.equal(await kitchen(own as string), undefined);
     assert.equal((await db().doc(`users/${bob.uid}`).get()).exists, false);
     await assert.rejects(adminAuth().getUser(bob.uid));
+  });
+
+  it("isn't stopped by a kitchen that is already gone", async () => {
+    await db().doc(`users/${bob.uid}`).set({ kitchenIds: ["gone"] });
+    await bob.call("deleteAccount");
+    await assert.rejects(adminAuth().getUser(bob.uid));
+  });
+
+  it("deletes the kitchens and photos of an owner, with its other members", async () => {
+    const kitchenId = await kitchenWithBob();
+    const photo = `kitchens/${kitchenId}/recipes/r1/photo.jpg`;
+    await getStorage().bucket().file(photo).save("image");
+
+    await alice.call("deleteAccount");
+
+    assert.equal(await kitchen(kitchenId), undefined);
+    assert.deepEqual(await kitchenIds(bob.uid), []);
+    const [exists] = await getStorage().bucket().file(photo).exists();
+    assert.equal(exists, false);
   });
 
   it("works for a user without kitchens", async () => {

@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://gourmandly.kolmodin.com",
+      "https://dev.gourmandly.kolmodin.com"
+    ],
+    "method": [
+      "GET"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -27,7 +27,12 @@ service cloud.firestore {
       allow read: if isMember(kitchenId);
       allow update: if isMember(kitchenId)
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['name', 'language']);
+             .hasOnly(['name', 'language'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.language is string
+        && request.resource.data.language.size() <= 3;
 
       match /recipes/{id} {
         allow read, write: if isMember(kitchenId);
@@ -63,7 +68,7 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time;
       }
 
-      match /usage/{month} {
+      match /usage/{day} {
         allow read: if isMember(kitchenId);
       }
     }

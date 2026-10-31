@@ -14,9 +14,11 @@ import type { CallableRequest } from "firebase-functions/v2/https";
 import { defaultStaples, defaultTags, keySlug } from "./defaults.ts";
 import {
   acceptance,
+  canCreateKitchen,
   canInvite,
   inviteExpiry,
   leaving,
+  memberName,
   parseId,
   parseKitchenName,
   parseLanguage,
@@ -46,6 +48,10 @@ function dataOf(request: CallableRequest): Record<string, unknown> {
     : {};
 }
 
+function nameOf(request: CallableRequest): string {
+  return memberName(request.auth?.token["name"]);
+}
+
 const kitchenRef = (db: Firestore, id: string) => db.doc(`kitchens/${id}`);
 const userRef = (db: Firestore, uid: string) => db.doc(`users/${uid}`);
 
@@ -58,6 +64,9 @@ export const createKitchen = onCall(async (request) => {
   const data = dataOf(request);
   const name = unwrap(parseKitchenName(data["name"]));
   const db = getFirestore();
+  const kitchenIds = ((await userRef(db, uid).get()).data()?.["kitchenIds"] ??
+    []) as string[];
+  unwrap(canCreateKitchen(kitchenIds));
   const kitchen = db.collection("kitchens").doc();
   const now = FieldValue.serverTimestamp();
 
@@ -66,13 +75,14 @@ export const createKitchen = onCall(async (request) => {
     name,
     ownerId: uid,
     memberIds: [uid],
+    memberNames: { [uid]: nameOf(request) },
     language: parseLanguage(data["language"]),
     createdAt: now,
   });
   batch.set(
     userRef(db, uid),
     {
-      name: request.auth?.token["name"] ?? "",
+      name: nameOf(request),
       email: request.auth?.token["email"] ?? "",
       kitchenIds: FieldValue.arrayUnion(kitchen.id),
     },
@@ -130,11 +140,12 @@ export const acceptInvite = onCall(async (request) => {
 
     transaction.update(kitchenRef(db, id), {
       memberIds: FieldValue.arrayUnion(uid),
+      [`memberNames.${uid}`]: nameOf(request),
     });
     transaction.set(
       userRef(db, uid),
       {
-        name: request.auth?.token["name"] ?? "",
+        name: nameOf(request),
         email: request.auth?.token["email"] ?? "",
         kitchenIds: FieldValue.arrayUnion(id),
       },
@@ -145,49 +156,62 @@ export const acceptInvite = onCall(async (request) => {
   return { kitchenId };
 });
 
-/** Deletes a kitchen with everything in it, and all invites to it. */
-async function deleteKitchen(
-  db: Firestore,
-  kitchenId: string,
-  kitchen: Kitchen,
-): Promise<void> {
+/**
+ * Deletes a kitchen with everything in it. The kitchen stays listed on its
+ * members until the very end, so that an interrupted deletion can be repeated
+ * by leaving again. Invites go first, so that nobody can join halfway.
+ */
+async function deleteKitchen(db: Firestore, kitchenId: string): Promise<void> {
+  const ref = kitchenRef(db, kitchenId);
+  const invites = await db
+    .collection("invites")
+    .where("kitchenId", "==", kitchenId)
+    .get();
+  const writer = db.bulkWriter();
+  for (const invite of invites.docs) {
+    void writer.delete(invite.ref);
+  }
+  await writer.close();
+
+  const members = (await readKitchen(ref))?.memberIds ?? [];
+  await getStorage().bucket().deleteFiles({ prefix: `kitchens/${kitchenId}/` });
+  await db.recursiveDelete(ref);
+
   const batch = db.batch();
-  for (const member of kitchen.memberIds) {
+  for (const member of members) {
     batch.set(
       userRef(db, member),
       { kitchenIds: FieldValue.arrayRemove(kitchenId) },
       { merge: true },
     );
   }
-  const invites = await db
-    .collection("invites")
-    .where("kitchenId", "==", kitchenId)
-    .get();
-  for (const invite of invites.docs) {
-    batch.delete(invite.ref);
-  }
   await batch.commit();
-  await db.recursiveDelete(kitchenRef(db, kitchenId));
-  await getStorage().bucket().deleteFiles({ prefix: `kitchens/${kitchenId}/` });
 }
 
+/**
+ * The decision is made inside the transaction, so that it can't be overtaken
+ * by a change of owner.
+ */
 async function leave(db: Firestore, kitchenId: string, uid: string): Promise<void> {
   const ref = kitchenRef(db, kitchenId);
-  const kitchen = await readKitchen(ref);
-  switch (unwrap(leaving(kitchen, uid))) {
-    case "deleteKitchen":
-      await deleteKitchen(db, kitchenId, kitchen as Kitchen);
-      break;
-    case "removeMember": {
-      const batch = db.batch();
-      batch.update(ref, { memberIds: FieldValue.arrayRemove(uid) });
-      batch.set(
-        userRef(db, uid),
-        { kitchenIds: FieldValue.arrayRemove(kitchenId) },
-        { merge: true },
-      );
-      await batch.commit();
+  const user = userRef(db, uid);
+  const forget = { kitchenIds: FieldValue.arrayRemove(kitchenId) };
+  const outcome = await db.runTransaction(async (transaction) => {
+    const kitchen = (await transaction.get(ref)).data() as Kitchen | undefined;
+    const decided = unwrap(leaving(kitchen, uid));
+    if (decided === "removeMember") {
+      transaction.update(ref, {
+        memberIds: FieldValue.arrayRemove(uid),
+        [`memberNames.${uid}`]: FieldValue.delete(),
+      });
     }
+    if (decided !== "deleteKitchen") {
+      transaction.set(user, forget, { merge: true });
+    }
+    return decided;
+  });
+  if (outcome === "deleteKitchen") {
+    await deleteKitchen(db, kitchenId);
   }
 }
 

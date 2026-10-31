@@ -15,6 +15,7 @@ import type {
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -22,7 +23,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { getBytes, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 
 const firebaseDir = new URL("../../firebase/", import.meta.url);
 
@@ -128,6 +129,40 @@ describe("kitchen documents", () => {
       );
     });
   }
+
+  it("a kitchen's name and language are checked", async () => {
+    for (const change of [
+      { name: "" },
+      { name: 1 },
+      { name: "x".repeat(81) },
+      { name: deleteField() },
+      { language: "swedish" },
+      { language: 1 },
+      { language: deleteField() },
+    ]) {
+      await assertFails(updateDoc(doc(bob(), "kitchens/k1"), change));
+    }
+  });
+
+  it("removing membership fields is refused too", async () => {
+    await assertFails(
+      updateDoc(doc(bob(), "kitchens/k1"), { memberIds: deleteField() }),
+    );
+    await assertFails(
+      updateDoc(doc(bob(), "kitchens/k1"), { ownerId: deleteField() }),
+    );
+  });
+
+  it("overwriting a kitchen with set can't change membership", async () => {
+    await assertFails(
+      setDoc(doc(bob(), "kitchens/k1"), {
+        name: "Hemma",
+        ownerId: "bob",
+        memberIds: ["bob"],
+        language: "sv",
+      }),
+    );
+  });
 
   it("a rename can't smuggle in a membership change", async () => {
     await assertFails(
@@ -239,6 +274,15 @@ describe("import jobs", () => {
     );
   });
 
+  it("a job can't choose its own time", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "kitchens/k1/importJobs/j2"), {
+        ...job(),
+        createdAt: new Date(0),
+      }),
+    );
+  });
+
   it("a job needs a URL that is a string", async () => {
     await assertFails(
       setDoc(doc(alice(), "kitchens/k1/importJobs/j2"), { ...job(), url: 1 }),
@@ -275,6 +319,10 @@ describe("users", () => {
   it("not anyone else's", async () => {
     await assertFails(getDoc(doc(alice(), "users/bob")));
     await assertFails(getDoc(doc(anonymous(), "users/bob")));
+  });
+
+  it("users can't be listed", async () => {
+    await assertFails(getDocs(collection(alice(), "users")));
   });
 
   it("users can't change their own document", async () => {
@@ -333,6 +381,10 @@ describe("recipe photos", () => {
     await assertFails(
       uploadBytes(ref(storage("alice"), "kitchens/k1/recipes/r1/new.jpg"), new Uint8Array([1])),
     );
+  });
+
+  it("clients can't delete them", async () => {
+    await assertFails(deleteObject(ref(storage("alice"), photo)));
   });
 
   it("anything outside a kitchen is closed", async () => {

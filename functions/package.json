@@ -12,7 +12,7 @@
     "build:watch": "tsc --watch",
     "test": "node --test --experimental-strip-types 'src/**/*.test.ts'",
     "test:rules": "node --test --experimental-strip-types test/rules.test.ts",
-    "test:integration": "node --test --test-concurrency=1 --experimental-strip-types test/kitchens.test.ts",
+    "test:integration": "node --test --test-force-exit --test-concurrency=1 --experimental-strip-types test/kitchens.test.ts",
     "typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {

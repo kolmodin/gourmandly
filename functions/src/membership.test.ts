@@ -3,9 +3,11 @@ import { describe, it } from "node:test";
 
 import {
   acceptance,
+  canCreateKitchen,
   canInvite,
   inviteExpiry,
   leaving,
+  memberName,
   parseId,
   parseKitchenName,
   parseLanguage,
@@ -51,10 +53,31 @@ describe("parseId", () => {
     assert.deepEqual(parseId("k1", "kitchen"), { ok: true, value: "k1" });
   });
 
-  it("refuses anything that could reach another path", () => {
-    for (const value of [undefined, 1, "", "k1/recipes"]) {
+  it("refuses anything Firestore wouldn't take as a document ID", () => {
+    for (const value of [undefined, 1, "", "k1/recipes", ".", "..", "__x__"]) {
       assert.equal(refusalCode(parseId(value, "kitchen")), "invalid-argument");
     }
+  });
+});
+
+describe("canCreateKitchen", () => {
+  it("allows up to ten kitchens", () => {
+    assert.equal(canCreateKitchen(Array(9).fill("k")).ok, true);
+    assert.equal(
+      refusalCode(canCreateKitchen(Array(10).fill("k"))),
+      "failed-precondition",
+    );
+  });
+});
+
+describe("memberName", () => {
+  it("uses the name of the account", () => {
+    assert.equal(memberName("Anna"), "Anna");
+  });
+
+  it("is empty without one", () => {
+    assert.equal(memberName(undefined), "");
+    assert.equal(memberName(1), "");
   });
 });
 
@@ -77,6 +100,7 @@ describe("acceptance", () => {
   });
 
   it("is valid for seven days", () => {
+    assert.equal(invite.expiresAt.toISOString(), "2026-11-08T12:00:00.000Z");
     const almost = new Date(invite.expiresAt.getTime() - 1);
     assert.equal(acceptance(invite, kitchen, almost).ok, true);
     assert.equal(
@@ -102,7 +126,10 @@ describe("leaving", () => {
 
   it("refuses outsiders", () => {
     assert.equal(refusalCode(leaving(kitchen, "mallory")), "not-found");
-    assert.equal(refusalCode(leaving(undefined, "alice")), "not-found");
+  });
+
+  it("forgets a kitchen that is gone", () => {
+    assert.deepEqual(leaving(undefined, "alice"), { ok: true, value: "forget" });
   });
 });
 
