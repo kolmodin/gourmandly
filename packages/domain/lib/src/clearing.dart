@@ -9,23 +9,35 @@ const checkedLifetime = Duration(hours: 24);
 
 /// What the "Clear checked" button does.
 ///
-/// [state] must be fully loaded: a check whose line can't be found counts as
-/// left over and is removed.
-IList<Effect> clearChecked(KitchenState state, {required DateTime now}) =>
-    _clear(state, now, isOldEnough: (_) => true);
+/// A check whose line can't be found counts as left over and is removed, but
+/// only if [isComplete] says that [state] holds all of the kitchen's data.
+/// Offline, a partial cache could be missing the recipes behind a check.
+IList<Effect> clearChecked(
+  KitchenState state, {
+  required DateTime now,
+  required bool isComplete,
+}) => _clear(state, now, isOldEnough: (_) => true, removeLeftovers: isComplete);
 
 /// Clears lines checked more than [checkedLifetime] ago, for the client that
 /// opens the list first. Made up of deletes and additions to sets, so two
 /// clients doing this at once is harmless.
+///
+/// Call this only once [state] is known to be complete and in sync.
 IList<Effect> autoClear(KitchenState state, {required DateTime now}) {
   final cutoff = now.subtract(checkedLifetime);
-  return _clear(state, now, isOldEnough: (at) => at.isBefore(cutoff));
+  return _clear(
+    state,
+    now,
+    isOldEnough: (at) => at.isBefore(cutoff),
+    removeLeftovers: true,
+  );
 }
 
 IList<Effect> _clear(
   KitchenState state,
   DateTime now, {
   required bool Function(DateTime checkedAt) isOldEnough,
+  required bool removeLeftovers,
 }) {
   final list = shoppingList(state);
   final pantry = Pantry(state);
@@ -60,9 +72,11 @@ IList<Effect> _clear(
     }
   }
 
-  for (final check in state.checks) {
-    if (!lineIds.contains(check.line) && isOldEnough(check.at)) {
-      effects.add(DeleteCheck(check.line));
+  if (removeLeftovers) {
+    for (final check in state.checks) {
+      if (!lineIds.contains(check.line) && isOldEnough(check.at)) {
+        effects.add(DeleteCheck(check.line));
+      }
     }
   }
 

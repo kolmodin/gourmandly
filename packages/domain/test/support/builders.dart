@@ -9,12 +9,18 @@ Ingredient ingredient(
   String? name,
   Quantity quantity = const Unspecified(),
   Unit? unit,
+  String text = '',
+  String? note,
+  String? group,
 }) => Ingredient(
   id: id ?? key,
   name: name ?? key,
   key: key,
   quantity: quantity,
   unit: unit,
+  text: text,
+  note: note,
+  group: group,
 );
 
 Ingredient amountOfIngredient(
@@ -30,12 +36,28 @@ Recipe recipe(
   int servings = 4,
   String? title,
   List<String> tagIds = const [],
+  List<String> steps = const [],
+  String? language,
+  RecipeOriginal? original,
+  String? sourceUrl,
+  RecipeImage? image,
+  int? totalTime,
+  DateTime? lastCookedAt,
+  int timesCooked = 0,
 }) => Recipe(
   id: id,
   title: title ?? id,
   servings: servings,
   ingredients: ingredients.lock,
   tagIds: tagIds.lock,
+  steps: steps.lock,
+  language: language,
+  original: original,
+  sourceUrl: sourceUrl,
+  image: image,
+  totalTime: totalTime,
+  lastCookedAt: lastCookedAt,
+  timesCooked: timesCooked,
 );
 
 PlannedRecipe planned(
@@ -43,6 +65,7 @@ PlannedRecipe planned(
   String recipeId, {
   int servings = 4,
   DateTime? addedAt,
+  String? addedBy,
   Iterable<String> excluded = const [],
   Iterable<String> done = const [],
   DateTime? shoppedAt,
@@ -52,6 +75,7 @@ PlannedRecipe planned(
   recipeId: recipeId,
   servings: servings,
   addedAt: addedAt ?? t0,
+  addedBy: addedBy,
   excluded: excluded.toISet(),
   done: done.toISet(),
   shoppedAt: shoppedAt,
@@ -65,6 +89,7 @@ ListItem item(
   Quantity quantity = const Unspecified(),
   Unit? unit,
   DateTime? addedAt,
+  String? addedBy,
 }) => ListItem(
   id: id,
   name: name,
@@ -72,6 +97,7 @@ ListItem item(
   quantity: quantity,
   unit: unit,
   addedAt: addedAt ?? t0,
+  addedBy: addedBy,
 );
 
 KitchenState kitchen({
@@ -115,6 +141,7 @@ extension PlannedRecipeCopy on PlannedRecipe {
     recipeId: recipeId,
     servings: servings,
     addedAt: addedAt,
+    addedBy: addedBy,
     excluded: excluded,
     done: done,
     shoppedAt: shoppedAt,

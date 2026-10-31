@@ -605,7 +605,10 @@ void main() {
       final line = shoppingList(kitchen(items: [item('i1', 'mjölk')]))
           .lines
           .single;
-      expect(checkLine(line, at: t0), SetCheck(Check(line: line.id, at: t0)));
+      expect(
+        checkLine(line, at: t0, by: 'u1'),
+        SetCheck(Check(line: line.id, at: t0, by: 'u1')),
+      );
     });
 
     test('uncheckLine deletes the check', () {

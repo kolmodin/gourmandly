@@ -1,8 +1,8 @@
 import 'package:domain/domain.dart';
+import 'package:domain/testing.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:glados/glados.dart';
 
-import 'support/apply.dart';
 import 'support/builders.dart';
 import 'support/kitchen_generators.dart';
 
@@ -27,7 +27,7 @@ void main() {
         planned: [planned('e1', 'soup')],
         checks: [checked(onion, 2)],
       );
-      expect(clearChecked(state, now: t0), [
+      expect(clearChecked(state, now: t0, isComplete: true), [
         const DeleteCheck(onion),
         UpdatePlanned('e1', addDone: {'onion'}.lock),
       ]);
@@ -39,7 +39,7 @@ void main() {
         items: [item('i1', 'mjölk')],
         checks: [Check(line: line, at: t0)],
       );
-      expect(clearChecked(state, now: t0), [
+      expect(clearChecked(state, now: t0, isComplete: true), [
         const DeleteListItem('i1'),
         const DeleteCheck(line),
       ]);
@@ -51,7 +51,7 @@ void main() {
         planned: [planned('e1', 'soup')],
         checks: [checked(onion, 1)],
       );
-      expect(clearChecked(state, now: t0), isEmpty);
+      expect(clearChecked(state, now: t0, isComplete: true), isEmpty);
     });
 
     test('a recipe with nothing left to buy moves to "to cook"', () {
@@ -60,7 +60,10 @@ void main() {
         planned: [planned('e1', 'soup')],
         checks: [checked(onion, 2), checked(leek, 1)],
       );
-      final after = applyEffects(state, clearChecked(state, now: t0));
+      final after = applyEffects(
+        state,
+        clearChecked(state, now: t0, isComplete: true),
+      );
       final entry = after.planned.single;
       expect(entry.stage, PlannedStage.toCook);
       expect(entry.shoppedAt, t0);
@@ -82,7 +85,10 @@ void main() {
         staples: {'salt'},
         checks: [checked(onion, 2)],
       );
-      final after = applyEffects(state, clearChecked(state, now: t0));
+      final after = applyEffects(
+        state,
+        clearChecked(state, now: t0, isComplete: true),
+      );
       expect(after.planned.single.stage, PlannedStage.toCook);
     });
 
@@ -96,7 +102,10 @@ void main() {
         overrides: {'salt': true},
         checks: [checked(onion, 2)],
       );
-      final after = applyEffects(state, clearChecked(state, now: t0));
+      final after = applyEffects(
+        state,
+        clearChecked(state, now: t0, isComplete: true),
+      );
       expect(after.planned.single.stage, PlannedStage.onList);
     });
 
@@ -108,7 +117,7 @@ void main() {
         planned: [planned('e1', 'r')],
         staples: {'salt'},
       );
-      expect(clearChecked(state, now: t0), [
+      expect(clearChecked(state, now: t0, isComplete: true), [
         UpdatePlanned('e1', shoppedAt: t0),
       ]);
     });
@@ -128,7 +137,10 @@ void main() {
         planned: [planned('e1', 'a'), planned('e2', 'b')],
         checks: [checked(onion, 3)],
       );
-      final after = applyEffects(state, clearChecked(state, now: t0));
+      final after = applyEffects(
+        state,
+        clearChecked(state, now: t0, isComplete: true),
+      );
       expect(after.planned[0].done, {'onion'}.lock);
       expect(after.planned[1].done, {'onion'}.lock);
     });
@@ -145,7 +157,7 @@ void main() {
         checks: [Check(line: salt, at: t0)],
       );
       expect(
-        clearChecked(state, now: t0),
+        clearChecked(state, now: t0, isComplete: true),
         contains(const DeleteOverride('salt')),
       );
     });
@@ -170,7 +182,7 @@ void main() {
         checks: [checked(saltPieces, 1)],
       );
       expect(
-        clearChecked(state, now: t0),
+        clearChecked(state, now: t0, isComplete: true),
         isNot(contains(const DeleteOverride('salt'))),
       );
     });
@@ -186,14 +198,16 @@ void main() {
         checks: [Check(line: const LineId('onion', BaseMeasure.none), at: t0)],
       );
       expect(
-        clearChecked(state, now: t0),
+        clearChecked(state, now: t0, isComplete: true),
         isNot(contains(const DeleteOverride('onion'))),
       );
     });
 
     test('removes checks whose line no longer exists', () {
       final state = kitchen(checks: [checked(onion, 2)]);
-      expect(clearChecked(state, now: t0), [const DeleteCheck(onion)]);
+      expect(clearChecked(state, now: t0, isComplete: true), [
+        const DeleteCheck(onion),
+      ]);
     });
 
     test('removes a check on a line that is now a hidden staple', () {
@@ -205,12 +219,37 @@ void main() {
         staples: {'onion'},
         checks: [checked(onion, 2)],
       );
-      expect(clearChecked(state, now: t0), contains(const DeleteCheck(onion)));
+      expect(
+        clearChecked(state, now: t0, isComplete: true),
+        contains(const DeleteCheck(onion)),
+      );
+    });
+
+    test('keeps leftover checks while the state may be incomplete', () {
+      final state = kitchen(checks: [checked(onion, 2)]);
+      expect(clearChecked(state, now: t0, isComplete: false), isEmpty);
+    });
+
+    test('still clears what it can see while incomplete', () {
+      final state = kitchen(
+        recipes: [soup],
+        planned: [planned('e1', 'soup')],
+        checks: [
+          checked(onion, 2),
+          checked(const LineId('x', BaseMeasure.mass), 1),
+        ],
+      );
+      final effects = clearChecked(state, now: t0, isComplete: false);
+      expect(effects, contains(const DeleteCheck(onion)));
+      expect(
+        effects,
+        isNot(contains(const DeleteCheck(LineId('x', BaseMeasure.mass)))),
+      );
     });
 
     test('skips entries whose recipe is gone', () {
       final state = kitchen(planned: [planned('e1', 'missing')]);
-      expect(clearChecked(state, now: t0), isEmpty);
+      expect(clearChecked(state, now: t0, isComplete: true), isEmpty);
     });
   });
 
@@ -276,7 +315,10 @@ void main() {
     Glados(any.kitchenState, thorough).test(
       'nothing checked remains after clearing',
       (state) {
-        final after = applyEffects(state, clearChecked(state, now: t0));
+        final after = applyEffects(
+          state,
+          clearChecked(state, now: t0, isComplete: true),
+        );
         expect(
           shoppingList(after).lines.where((l) => l.status is FullyChecked),
           isEmpty,
@@ -291,7 +333,10 @@ void main() {
             shoppingList(s).lines
                 .where((l) => l.status is! FullyChecked)
                 .toList();
-        final after = applyEffects(state, clearChecked(state, now: t0));
+        final after = applyEffects(
+          state,
+          clearChecked(state, now: t0, isComplete: true),
+        );
         expect(open(after), open(state));
       },
     );
@@ -299,15 +344,21 @@ void main() {
     Glados(any.kitchenState, thorough).test(
       'clearing twice changes nothing more',
       (state) {
-        final after = applyEffects(state, clearChecked(state, now: t0));
-        expect(clearChecked(after, now: t0), isEmpty);
+        final after = applyEffects(
+          state,
+          clearChecked(state, now: t0, isComplete: true),
+        );
+        expect(clearChecked(after, now: t0, isComplete: true), isEmpty);
       },
     );
 
     Glados(any.kitchenState, thorough).test(
       'no check survives without a visible line',
       (state) {
-        final after = applyEffects(state, clearChecked(state, now: t0));
+        final after = applyEffects(
+          state,
+          clearChecked(state, now: t0, isComplete: true),
+        );
         final lines = {for (final l in shoppingList(after).lines) l.id};
         for (final check in after.checks) {
           expect(lines, contains(check.line));
@@ -315,16 +366,16 @@ void main() {
       },
     );
 
-    Glados(any.kitchenState, thorough).test(
-      'automatic clearing is manual clearing, later',
-      (state) {
-        final later = t0.add(const Duration(days: 30));
-        expect(
-          applyEffects(state, autoClear(state, now: later)),
-          applyEffects(state, clearChecked(state, now: later)),
-        );
-      },
-    );
+    Glados(
+      any.kitchenState,
+      thorough,
+    ).test('automatic clearing is manual clearing, later', (state) {
+      final later = t0.add(const Duration(days: 30));
+      expect(
+        applyEffects(state, autoClear(state, now: later)),
+        applyEffects(state, clearChecked(state, now: later, isComplete: true)),
+      );
+    });
 
     Glados(any.kitchenState, thorough).test(
       'automatic clearing keeps recent lines',
@@ -337,7 +388,7 @@ void main() {
     Glados(any.kitchenState, thorough).test(
       'two clients clearing at once agree',
       (state) {
-        final effects = clearChecked(state, now: t0);
+        final effects = clearChecked(state, now: t0, isComplete: true);
         final once = applyEffects(state, effects);
         final twice = applyEffects(once, effects);
         expect(twice, once);

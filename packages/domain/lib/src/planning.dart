@@ -1,14 +1,16 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
-import 'amount.dart';
 import 'clearing.dart';
 import 'effects.dart';
 import 'model.dart';
-import 'quantity.dart';
+import 'shopping_list.dart';
 import 'text.dart';
 
 /// How long cooking can go on before it counts as finished.
 const cookingLifetime = Duration(hours: 24);
+
+DateTime _shoppedTime(PlannedRecipe entry) =>
+    entry.shoppedAt ?? entry.cookingStartedAt ?? entry.addedAt;
 
 /// The "To cook" list: recipes being cooked first, then shopped ones, oldest
 /// first.
@@ -21,7 +23,7 @@ IList<PlannedRecipe> toCook(KitchenState state) {
         ..sort((a, b) {
           final byRank = rank(a).compareTo(rank(b));
           if (byRank != 0) return byRank;
-          final byTime = a.shoppedAt!.compareTo(b.shoppedAt!);
+          final byTime = _shoppedTime(a).compareTo(_shoppedTime(b));
           return byTime != 0 ? byTime : a.id.compareTo(b.id);
         }))
       .lock;
@@ -38,6 +40,40 @@ PlannedRecipe? plannedEntryFor(KitchenState state, String recipeId) {
   return null;
 }
 
+/// Plans [recipe] at [servings], putting its ingredients on the shopping list.
+Effect addToList(
+  Recipe recipe, {
+  required int servings,
+  required DateTime now,
+  required String newEntryId,
+  String? by,
+}) => CreatePlanned(
+  PlannedRecipe(
+    id: newEntryId,
+    recipeId: recipe.id,
+    servings: servings,
+    addedAt: now,
+    addedBy: by,
+  ),
+);
+
+/// Adds something to the shopping list by hand.
+Effect addItem(
+  String name, {
+  required DateTime now,
+  required String newItemId,
+  String? by,
+}) => CreateListItem(
+  ListItem(id: newItemId, name: name.trim(), addedAt: now, addedBy: by),
+);
+
+/// Leaves an ingredient out of this planned recipe: "already have the cream".
+Effect excludeIngredient(PlannedRecipe entry, String ingredientId) =>
+    UpdatePlanned(entry.id, addExcluded: {ingredientId}.lock);
+
+Effect includeIngredient(PlannedRecipe entry, String ingredientId) =>
+    UpdatePlanned(entry.id, removeExcluded: {ingredientId}.lock);
+
 Effect markShopped(PlannedRecipe entry, {required DateTime now}) =>
     UpdatePlanned(entry.id, shoppedAt: now);
 
@@ -53,8 +89,13 @@ IList<Effect> doneShopping(
   KitchenState state,
   DoneShopping choice, {
   required DateTime now,
+  required bool isComplete,
 }) => switch (choice) {
-  DoneShopping.keepUnchecked => clearChecked(state, now: now),
+  DoneShopping.keepUnchecked => clearChecked(
+    state,
+    now: now,
+    isComplete: isComplete,
+  ),
   DoneShopping.everythingBought => <Effect>[
     for (final entry in state.planned)
       if (entry.stage == PlannedStage.onList) markShopped(entry, now: now),
@@ -84,6 +125,7 @@ StartCooking startCooking({
   required DateTime now,
   required String newEntryId,
   PlannedRecipe? entry,
+  String? by,
 }) {
   if (entry == null) {
     return StartCooking(
@@ -94,6 +136,7 @@ StartCooking startCooking({
             recipeId: recipe.id,
             servings: servings,
             addedAt: now,
+            addedBy: by,
             shoppedAt: now,
             cookingStartedAt: now,
           ),
@@ -144,11 +187,11 @@ StartCooking startCooking({
   return StartCooking(effects: [effect].lock, undo: [undo].lock);
 }
 
-IList<Effect> _finish(PlannedRecipe entry, DateTime at) =>
-    [DeletePlanned(entry.id), RecordCooked(entry.recipeId, at)].lock;
+Effect _finish(PlannedRecipe entry, DateTime at) =>
+    FinishCooking(entryId: entry.id, recipeId: entry.recipeId, at: at);
 
 /// What the "Done cooking" button does.
-IList<Effect> doneCooking(PlannedRecipe entry, {required DateTime now}) =>
+Effect doneCooking(PlannedRecipe entry, {required DateTime now}) =>
     _finish(entry, now);
 
 /// Finishes cooking that was started more than [cookingLifetime] ago and never
@@ -158,7 +201,7 @@ IList<Effect> finishForgotten(KitchenState state, {required DateTime now}) {
   return [
     for (final entry in state.planned)
       if (entry.cookingStartedAt case final started?)
-        if (started.isBefore(cutoff)) ..._finish(entry, started),
+        if (started.isBefore(cutoff)) _finish(entry, started),
   ].lock;
 }
 
@@ -175,11 +218,7 @@ String cookingText(
   Ingredient ingredient, {
   required int from,
   required int to,
-}) {
-  final factor = scaleFactor(from: from, to: to);
-  final amount = amountOf(ingredient.quantity.scaled(factor), ingredient.unit);
-  final unit = ingredient.unit;
-  return amount == null
-      ? ingredient.name
-      : '${formatAmount(amount, [?unit])} ${ingredient.name}';
-}
+}) => describeIngredient(
+  ingredient,
+  scaledAmount(ingredient, from: from, to: to),
+);

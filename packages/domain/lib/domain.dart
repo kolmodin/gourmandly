@@ -10,6 +10,6 @@ export 'src/model.dart';
 export 'src/planning.dart';
 export 'src/quantity.dart';
 export 'src/search.dart';
-export 'src/shopping_list.dart';
+export 'src/shopping_list.dart' hide Pantry, lineKey;
 export 'src/text.dart';
 export 'src/units.dart';

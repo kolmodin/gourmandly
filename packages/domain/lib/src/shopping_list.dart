@@ -157,6 +157,24 @@ final class Pantry {
   bool wasBroughtBack(String key) => _overrides[key] ?? false;
 }
 
+/// The amount of [ingredient] in a recipe for [from] servings, scaled to [to].
+Amount? scaledAmount(
+  Ingredient ingredient, {
+  required int from,
+  required int to,
+}) => amountOf(
+  ingredient.quantity.scaled(scaleFactor(from: from, to: to)),
+  ingredient.unit,
+);
+
+/// For people: `2 st gul lök`, or just the name without an amount.
+String describeIngredient(Ingredient ingredient, Amount? amount) {
+  final unit = ingredient.unit;
+  return amount == null
+      ? ingredient.name
+      : '${formatAmount(amount, [?unit])} ${ingredient.name}';
+}
+
 /// The key an ingredient merges under.
 String lineKey(Ingredient ingredient) {
   final key = normalizeKey(ingredient.key);
@@ -218,8 +236,11 @@ _Contribution _fromIngredient(
   Pantry pantry,
 ) {
   final key = lineKey(ingredient);
-  final factor = scaleFactor(from: recipe.servings, to: entry.servings);
-  final amount = amountOf(ingredient.quantity.scaled(factor), ingredient.unit);
+  final amount = scaledAmount(
+    ingredient,
+    from: recipe.servings,
+    to: entry.servings,
+  );
   return _Contribution(
     id: LineId(key, amount?.measure ?? BaseMeasure.none),
     name: ingredient.name,
@@ -326,7 +347,7 @@ String exportList(ShoppingList list) => list.lines
     .join('\n');
 
 /// Ticks [line], covering all of its current amount.
-Effect checkLine(Line line, {required DateTime at, String? by}) =>
+Effect checkLine(Line line, {required DateTime at, required String by}) =>
     SetCheck(Check(line: line.id, quantity: line.amount?.max, at: at, by: by));
 
 Effect uncheckLine(Line line) => DeleteCheck(line.id);
@@ -351,13 +372,7 @@ final class RecipeItem extends Equatable {
   /// The status of the merged line this ingredient is part of.
   final LineStatus status;
 
-  String get text {
-    final unit = ingredient.unit;
-    final shown = amount;
-    return shown == null
-        ? ingredient.name
-        : '${formatAmount(shown, [?unit])} ${ingredient.name}';
-  }
+  String get text => describeIngredient(ingredient, amount);
 
   @override
   List<Object?> get props => [ingredient, amount, isHidden, status];
@@ -400,10 +415,10 @@ ByRecipeView byRecipe(KitchenState state) {
 
   RecipeItem item(PlannedRecipe entry, Recipe recipe, Ingredient ingredient) {
     final key = lineKey(ingredient);
-    final factor = scaleFactor(from: recipe.servings, to: entry.servings);
-    final amount = amountOf(
-      ingredient.quantity.scaled(factor),
-      ingredient.unit,
+    final amount = scaledAmount(
+      ingredient,
+      from: recipe.servings,
+      to: entry.servings,
     );
     final id = LineId(key, amount?.measure ?? BaseMeasure.none);
     return RecipeItem(

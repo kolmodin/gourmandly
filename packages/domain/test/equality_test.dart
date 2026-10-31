@@ -50,6 +50,9 @@ void main() {
       ingredient('x', id: 'i', name: 'n'),
       ingredient('a', id: 'i', name: 'n', quantity: Exact(Fraction(1))),
       ingredient('a', id: 'i', name: 'n', unit: StandardUnit.g),
+      ingredient('a', id: 'i', name: 'n', text: 't'),
+      ingredient('a', id: 'i', name: 'n', note: 'x'),
+      ingredient('a', id: 'i', name: 'n', group: 'x'),
     ]);
     hasValueEquality('Recipe', () => recipe('r', [], title: 't', servings: 4), [
       recipe('x', [], title: 't', servings: 4),
@@ -57,12 +60,83 @@ void main() {
       recipe('r', [], title: 't', servings: 2),
       recipe('r', [ingredient('a')], title: 't', servings: 4),
       recipe('r', [], title: 't', servings: 4, tagIds: ['t']),
+      recipe('r', [], title: 't', servings: 4, steps: ['s']),
+      recipe('r', [], title: 't', servings: 4, language: 'sv'),
+      recipe('r', [], title: 't', servings: 4, sourceUrl: 'u'),
+      recipe('r', [], title: 't', servings: 4, totalTime: 1),
+      recipe('r', [], title: 't', servings: 4, timesCooked: 1),
+      recipe('r', [], title: 't', servings: 4, lastCookedAt: t0),
+      recipe(
+        'r',
+        [],
+        title: 't',
+        servings: 4,
+        image: const RecipeImage(storagePath: 'p'),
+      ),
+      recipe(
+        'r',
+        [],
+        title: 't',
+        servings: 4,
+        original: const RecipeOriginal(
+          language: 'en',
+          title: 't',
+          ingredients: IListConst([]),
+          steps: IListConst([]),
+        ),
+      ),
+    ]);
+    hasValueEquality('RecipeImage', () => const RecipeImage(storagePath: 'p'), [
+      const RecipeImage(storagePath: 'x'),
+      const RecipeImage(storagePath: 'p', sourceUrl: 'u'),
+      const RecipeImage(storagePath: 'p', origin: ImageOrigin.ai),
+    ]);
+    RecipeOriginal original({
+      String language = 'en',
+      String title = 't',
+      List<Ingredient> ingredients = const [],
+      List<String> steps = const [],
+    }) => RecipeOriginal(
+      language: language,
+      title: title,
+      ingredients: ingredients.lock,
+      steps: steps.lock,
+    );
+    hasValueEquality('RecipeOriginal', original, [
+      original(language: 'x'),
+      original(title: 'x'),
+      original(ingredients: [ingredient('a')]),
+      original(steps: ['s']),
+    ]);
+    Kitchen kitchenValue({
+      String id = 'k',
+      String name = 'n',
+      String ownerId = 'o',
+      List<String> memberIds = const ['o'],
+      Map<String, String> memberNames = const {},
+      String language = 'sv',
+    }) => Kitchen(
+      id: id,
+      name: name,
+      ownerId: ownerId,
+      memberIds: memberIds.lock,
+      memberNames: memberNames.lock,
+      language: language,
+    );
+    hasValueEquality('Kitchen', kitchenValue, [
+      kitchenValue(id: 'x'),
+      kitchenValue(name: 'x'),
+      kitchenValue(ownerId: 'x'),
+      kitchenValue(memberIds: ['x']),
+      kitchenValue(memberNames: {'o': 'Olle'}),
+      kitchenValue(language: 'en'),
     ]);
     hasValueEquality('PlannedRecipe', () => planned('e', 'r'), [
       planned('x', 'r'),
       planned('e', 'x'),
       planned('e', 'r', servings: 9),
       planned('e', 'r', addedAt: later),
+      planned('e', 'r', addedBy: 'u'),
       planned('e', 'r', excluded: ['i']),
       planned('e', 'r', done: ['i']),
       planned('e', 'r', shoppedAt: t0),
@@ -72,6 +146,7 @@ void main() {
       item('x', 'n'),
       item('i', 'x'),
       item('i', 'n', addedAt: later),
+      item('i', 'n', addedBy: 'u'),
       item('i', 'n', key: 'k'),
       item('i', 'n', quantity: Exact(Fraction(1))),
       item('i', 'n', unit: StandardUnit.g),
@@ -311,6 +386,11 @@ void main() {
       const DeleteCheck(LineId('x', BaseMeasure.count)),
     ]);
     hasValueEquality<Effect>(
+      'CreateListItem',
+      () => CreateListItem(item('i', 'n')),
+      [CreateListItem(item('x', 'n'))],
+    );
+    hasValueEquality<Effect>(
       'DeleteListItem',
       () => const DeleteListItem('i'),
       [const DeleteListItem('x')],
@@ -337,6 +417,8 @@ void main() {
       const UpdatePlanned('x'),
       UpdatePlanned('e', addDone: {'i'}.lock),
       UpdatePlanned('e', removeDone: {'i'}.lock),
+      UpdatePlanned('e', addExcluded: {'i'}.lock),
+      UpdatePlanned('e', removeExcluded: {'i'}.lock),
       const UpdatePlanned('e', servings: 2),
       UpdatePlanned('e', shoppedAt: t0),
       const UpdatePlanned('e', clearShoppedAt: true),
@@ -346,10 +428,15 @@ void main() {
     hasValueEquality<Effect>('DeletePlanned', () => const DeletePlanned('e'), [
       const DeletePlanned('x'),
     ]);
-    hasValueEquality<Effect>('RecordCooked', () => RecordCooked('r', t0), [
-      RecordCooked('x', t0),
-      RecordCooked('r', later),
-    ]);
+    hasValueEquality<Effect>(
+      'FinishCooking',
+      () => FinishCooking(entryId: 'e', recipeId: 'r', at: t0),
+      [
+        FinishCooking(entryId: 'x', recipeId: 'r', at: t0),
+        FinishCooking(entryId: 'e', recipeId: 'x', at: t0),
+        FinishCooking(entryId: 'e', recipeId: 'r', at: later),
+      ],
+    );
     hasValueEquality<Effect>('DeleteRecipe', () => const DeleteRecipe('r'), [
       const DeleteRecipe('x'),
     ]);

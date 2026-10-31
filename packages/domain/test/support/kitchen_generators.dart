@@ -65,17 +65,37 @@ extension KitchenGenerators on Any {
     ),
   );
 
-  Generator<PlannedRecipe> plannedWithId(String id) => combine4(
+  /// Ingredient positions, some of which don't exist in the recipe.
+  Generator<Set<int>> get _positions =>
+      list(intInRange(0, 7)).map((positions) => positions.toSet());
+
+  Generator<PlannedRecipe> plannedWithId(String id) => combine6(
     choose(['r0', 'r1', 'r2']),
     intInRange(1, 13),
     choose([0, 1, 2]).map((n) => n == 2 ? 30 : 0),
-    _mostly,
-    (String recipeId, int servings, int minutes, bool onList) => PlannedRecipe(
+    combine2(
+      _mostly,
+      choose(PlannedStage.values),
+      (bool onList, PlannedStage stage) => onList ? PlannedStage.onList : stage,
+    ),
+    _positions,
+    _positions,
+    (
+      String recipeId,
+      int servings,
+      int minutes,
+      PlannedStage stage,
+      Set<int> done,
+      Set<int> excluded,
+    ) => PlannedRecipe(
       id: id,
       recipeId: recipeId,
       servings: servings,
       addedAt: b.t0.add(Duration(minutes: minutes)),
-      shoppedAt: onList ? null : b.t0,
+      done: {for (final position in done) '$recipeId-$position'}.lock,
+      excluded: {for (final position in excluded) '$recipeId-$position'}.lock,
+      shoppedAt: stage == PlannedStage.onList ? null : b.t0,
+      cookingStartedAt: stage == PlannedStage.cooking ? b.t0 : null,
     ),
   );
 
@@ -100,12 +120,13 @@ extension KitchenGenerators on Any {
       BaseMeasure.volume,
       BaseMeasure.count,
       BaseMeasure.none,
+      const NamedMeasure('burk'),
     ]),
     intInRange(0, 300),
     intInRange(0, 3000),
     (String key, Measure measure, int quantity, int minutes) => Check(
       line: LineId(key, measure),
-      quantity: Fraction(quantity),
+      quantity: measure == BaseMeasure.none ? null : Fraction(quantity),
       at: b.t0.add(Duration(minutes: minutes)),
     ),
   );

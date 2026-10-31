@@ -1,8 +1,8 @@
 import 'package:domain/domain.dart';
+import 'package:domain/testing.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:glados/glados.dart';
 
-import 'support/apply.dart';
 import 'support/builders.dart';
 import 'support/kitchen_generators.dart';
 
@@ -38,6 +38,17 @@ void main() {
         ],
       );
       expect([for (final e in toCook(state)) e.id], ['c', 'd', 'a']);
+    });
+
+    test('copes with a cooking entry without a shopped time', () {
+      final state = kitchen(
+        planned: [
+          planned('a', 'r', cookingStartedAt: t0),
+          planned('b', 'r', shoppedAt: later, cookingStartedAt: later),
+          planned('c', 'r', shoppedAt: t0.add(const Duration(minutes: 1))),
+        ],
+      );
+      expect([for (final e in toCook(state)) e.id], ['a', 'b', 'c']);
     });
 
     test('breaks ties by ID', () {
@@ -79,6 +90,48 @@ void main() {
     });
   });
 
+  group('addToList', () {
+    test('plans the recipe at the chosen servings', () {
+      final state = kitchen(recipes: [soup]);
+      final after = applyEffects(state, [
+        addToList(soup, servings: 8, now: t0, newEntryId: 'e1'),
+      ]);
+      final entry = after.planned.single;
+      expect(entry.id, 'e1');
+      expect(entry.stage, PlannedStage.onList);
+      expect(shoppingList(after).lines.first.text, '2 st leek');
+    });
+  });
+
+  group('addItem', () {
+    test('adds a manual item', () {
+      expect(
+        addItem(' mjölk ', now: t0, newItemId: 'i1', by: 'u1'),
+        CreateListItem(
+          ListItem(id: 'i1', name: 'mjölk', addedAt: t0, addedBy: 'u1'),
+        ),
+      );
+    });
+  });
+
+  group('excluding ingredients', () {
+    final entry = planned('e1', 'soup');
+    final state = kitchen(recipes: [soup], planned: [entry]);
+
+    test('takes the ingredient off the list', () {
+      final after = applyEffects(state, [excludeIngredient(entry, 'leek')]);
+      expect(shoppingList(after).lines.single.text, '2 st onion');
+    });
+
+    test('can be taken back', () {
+      final after = applyEffects(state, [
+        excludeIngredient(entry, 'leek'),
+        includeIngredient(entry, 'leek'),
+      ]);
+      expect(after, state);
+    });
+  });
+
   group('markShopped', () {
     test('sets shoppedAt', () {
       expect(
@@ -112,7 +165,12 @@ void main() {
     test('everything bought empties the list', () {
       final after = applyEffects(
         state,
-        doneShopping(state, DoneShopping.everythingBought, now: later),
+        doneShopping(
+          state,
+          DoneShopping.everythingBought,
+          now: later,
+          isComplete: true,
+        ),
       );
       expect(shoppingList(after).lines, isEmpty);
       expect(after.items, isEmpty);
@@ -124,7 +182,12 @@ void main() {
     test('everything bought leaves recipes that were already shopped', () {
       final after = applyEffects(
         state,
-        doneShopping(state, DoneShopping.everythingBought, now: later),
+        doneShopping(
+          state,
+          DoneShopping.everythingBought,
+          now: later,
+          isComplete: true,
+        ),
       );
       expect(after.planned.last.shoppedAt, t0);
     });
@@ -132,7 +195,12 @@ void main() {
     test('keeping unchecked items clears only what was checked', () {
       final after = applyEffects(
         state,
-        doneShopping(state, DoneShopping.keepUnchecked, now: later),
+        doneShopping(
+          state,
+          DoneShopping.keepUnchecked,
+          now: later,
+          isComplete: true,
+        ),
       );
       expect(after.items, hasLength(1));
       expect(after.planned.first.done, {'onion'}.lock);
@@ -144,7 +212,12 @@ void main() {
       (state) {
         final after = applyEffects(
           state,
-          doneShopping(state, DoneShopping.everythingBought, now: t0),
+          doneShopping(
+            state,
+            DoneShopping.everythingBought,
+            now: t0,
+            isComplete: false,
+          ),
         );
         expect(shoppingList(after).lines, isEmpty);
         expect(shoppingList(after).atHome, isEmpty);
@@ -322,12 +395,34 @@ void main() {
   });
 
   group('doneCooking', () {
-    test('deletes the entry and records it on the recipe', () {
-      final entry = planned('e1', 'soup', shoppedAt: t0, cookingStartedAt: t0);
-      expect(doneCooking(entry, now: later), [
-        const DeletePlanned('e1'),
-        RecordCooked('soup', later),
-      ]);
+    final entry = planned('e1', 'soup', shoppedAt: t0, cookingStartedAt: t0);
+
+    test('finishes the entry', () {
+      expect(
+        doneCooking(entry, now: later),
+        FinishCooking(entryId: 'e1', recipeId: 'soup', at: later),
+      );
+    });
+
+    test('removes the entry and records it on the recipe', () {
+      final state = kitchen(recipes: [soup], planned: [entry]);
+      final after = applyEffects(state, [doneCooking(entry, now: later)]);
+      expect(after.planned, isEmpty);
+      expect(after.recipes['soup']!.lastCookedAt, later);
+      expect(after.recipes['soup']!.timesCooked, 1);
+    });
+
+    test('two clients finishing the same entry count once', () {
+      final state = kitchen(recipes: [soup], planned: [entry]);
+      final effect = doneCooking(entry, now: later);
+      final after = applyEffects(state, [effect, effect]);
+      expect(after.recipes['soup']!.timesCooked, 1);
+    });
+
+    test('an entry whose recipe is gone can still be finished', () {
+      final state = kitchen(planned: [entry]);
+      final after = applyEffects(state, [doneCooking(entry, now: later)]);
+      expect(after.planned, isEmpty);
     });
   });
 
@@ -343,8 +438,7 @@ void main() {
     test('finishes cooking started more than 24 hours ago', () {
       final now = started.add(const Duration(hours: 24, seconds: 1));
       expect(finishForgotten(kitchen(planned: [entry]), now: now), [
-        const DeletePlanned('e1'),
-        RecordCooked('soup', started),
+        FinishCooking(entryId: 'e1', recipeId: 'soup', at: started),
       ]);
     });
 

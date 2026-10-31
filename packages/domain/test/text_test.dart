@@ -61,6 +61,16 @@ void main() {
       );
     });
 
+    test('a named unit with a slash is still a valid ID', () {
+      expect(
+        const LineId(
+          'tomato',
+          NamedMeasure('st/förp'),
+        ).documentId.contains('/'),
+        isFalse,
+      );
+    });
+
     test('differs between measures of one key', () {
       expect(
         const LineId('flour', BaseMeasure.mass).documentId,

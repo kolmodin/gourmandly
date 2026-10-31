@@ -4,8 +4,11 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'model.dart';
 
 /// A change to a kitchen's data, described rather than performed. The
-/// functions in this package decide; the repository layer applies the effects
-/// of one decision in one batch.
+/// functions in this package decide; the repository layer applies them.
+///
+/// Effects on a document that has disappeared in the meantime, deleted by
+/// another member for example, do nothing, and don't hold back the other
+/// effects of the decision.
 sealed class Effect extends Equatable {
   const Effect();
 }
@@ -37,6 +40,15 @@ final class DeleteListItem extends Effect {
   List<Object> get props => [itemId];
 }
 
+final class CreateListItem extends Effect {
+  const CreateListItem(this.item);
+
+  final ListItem item;
+
+  @override
+  List<Object> get props => [item];
+}
+
 final class SetOverride extends Effect {
   const SetOverride(this.key, {required this.include});
 
@@ -65,13 +77,15 @@ final class CreatePlanned extends Effect {
   List<Object> get props => [entry];
 }
 
-/// Field-level changes to a planned recipe. `addDone` and `removeDone` map to
+/// Field-level changes to a planned recipe. The `add` and `remove` sets map to
 /// `arrayUnion` and `arrayRemove`.
 final class UpdatePlanned extends Effect {
   const UpdatePlanned(
     this.entryId, {
     this.addDone = const ISetConst({}),
     this.removeDone = const ISetConst({}),
+    this.addExcluded = const ISetConst({}),
+    this.removeExcluded = const ISetConst({}),
     this.servings,
     this.shoppedAt,
     this.clearShoppedAt = false,
@@ -82,6 +96,8 @@ final class UpdatePlanned extends Effect {
   final String entryId;
   final ISet<String> addDone;
   final ISet<String> removeDone;
+  final ISet<String> addExcluded;
+  final ISet<String> removeExcluded;
   final int? servings;
   final DateTime? shoppedAt;
   final bool clearShoppedAt;
@@ -93,6 +109,8 @@ final class UpdatePlanned extends Effect {
     entryId,
     addDone,
     removeDone,
+    addExcluded,
+    removeExcluded,
     servings,
     shoppedAt,
     clearShoppedAt,
@@ -110,15 +128,23 @@ final class DeletePlanned extends Effect {
   List<Object> get props => [entryId];
 }
 
-/// Sets `lastCookedAt` and increments `timesCooked` on a recipe.
-final class RecordCooked extends Effect {
-  const RecordCooked(this.recipeId, this.at);
+/// Deletes a planned recipe and records on its recipe that it was cooked, as
+/// one atomic step: when two clients finish the same entry, only one of them
+/// counts. If the entry or the recipe is gone by then, the entry is simply
+/// deleted.
+final class FinishCooking extends Effect {
+  const FinishCooking({
+    required this.entryId,
+    required this.recipeId,
+    required this.at,
+  });
 
+  final String entryId;
   final String recipeId;
   final DateTime at;
 
   @override
-  List<Object> get props => [recipeId, at];
+  List<Object> get props => [entryId, recipeId, at];
 }
 
 final class DeleteRecipe extends Effect {

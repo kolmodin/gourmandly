@@ -30,6 +30,10 @@ void main() {
       expect(scaleFactor(from: 4, to: 3), Fraction(3, 4));
     });
 
+    test('an entry without a usable servings count is not scaled', () {
+      expect(scaleFactor(from: 4, to: 0), Fraction.one);
+    });
+
     test('a recipe without a usable servings count is not scaled', () {
       expect(scaleFactor(from: 0, to: 8), Fraction.one);
       expect(scaleFactor(from: -1, to: 8), Fraction.one);

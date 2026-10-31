@@ -13,6 +13,9 @@ final class Ingredient extends Equatable {
     required this.key,
     this.quantity = const Unspecified(),
     this.unit,
+    this.text = '',
+    this.note,
+    this.group,
   });
 
   /// Stable across edits, so exclusions and ticks survive them.
@@ -27,8 +30,57 @@ final class Ingredient extends Equatable {
   final Quantity quantity;
   final Unit? unit;
 
+  /// The line as written in the recipe: `2 krm nymald svartpeppar`.
+  final String text;
+
+  /// `gärna ekologisk`
+  final String? note;
+
+  /// The section heading of the ingredient: `Sås`.
+  final String? group;
+
   @override
-  List<Object?> get props => [id, name, key, quantity, unit];
+  List<Object?> get props => [id, name, key, quantity, unit, text, note, group];
+}
+
+enum ImageOrigin { page, ai }
+
+/// A recipe's photo, copied into storage at import.
+final class RecipeImage extends Equatable {
+  const RecipeImage({
+    required this.storagePath,
+    this.sourceUrl,
+    this.origin = ImageOrigin.page,
+  });
+
+  final String storagePath;
+
+  /// Where the photo was copied from.
+  final String? sourceUrl;
+
+  final ImageOrigin origin;
+
+  @override
+  List<Object?> get props => [storagePath, sourceUrl, origin];
+}
+
+/// A recipe as imported, kept when it was translated into the kitchen's
+/// language. Read-only.
+final class RecipeOriginal extends Equatable {
+  const RecipeOriginal({
+    required this.language,
+    required this.title,
+    required this.ingredients,
+    required this.steps,
+  });
+
+  final String language;
+  final String title;
+  final IList<Ingredient> ingredients;
+  final IList<String> steps;
+
+  @override
+  List<Object> get props => [language, title, ingredients, steps];
 }
 
 final class Recipe extends Equatable {
@@ -38,6 +90,14 @@ final class Recipe extends Equatable {
     required this.servings,
     required this.ingredients,
     this.tagIds = const IListConst([]),
+    this.steps = const IListConst([]),
+    this.language,
+    this.original,
+    this.sourceUrl,
+    this.image,
+    this.totalTime,
+    this.lastCookedAt,
+    this.timesCooked = 0,
   });
 
   final String id;
@@ -45,9 +105,73 @@ final class Recipe extends Equatable {
   final int servings;
   final IList<Ingredient> ingredients;
   final IList<String> tagIds;
+  final IList<String> steps;
+
+  /// The kitchen's language at import.
+  final String? language;
+
+  /// Set when the source was in another language.
+  final RecipeOriginal? original;
+
+  final String? sourceUrl;
+  final RecipeImage? image;
+
+  /// In minutes.
+  final int? totalTime;
+
+  final DateTime? lastCookedAt;
+  final int timesCooked;
 
   @override
-  List<Object?> get props => [id, title, servings, ingredients, tagIds];
+  List<Object?> get props => [
+    id,
+    title,
+    servings,
+    ingredients,
+    tagIds,
+    steps,
+    language,
+    original,
+    sourceUrl,
+    image,
+    totalTime,
+    lastCookedAt,
+    timesCooked,
+  ];
+}
+
+/// A recipe store and a shopping list, shared by the people who cook together.
+final class Kitchen extends Equatable {
+  const Kitchen({
+    required this.id,
+    required this.name,
+    required this.ownerId,
+    required this.memberIds,
+    required this.language,
+    this.memberNames = const IMapConst({}),
+  });
+
+  final String id;
+  final String name;
+  final String ownerId;
+  final IList<String> memberIds;
+
+  /// Display names per member ID. Kept here so that members can see each other
+  /// without being able to read each other's accounts.
+  final IMap<String, String> memberNames;
+
+  /// The language the kitchen shops in.
+  final String language;
+
+  @override
+  List<Object> get props => [
+    id,
+    name,
+    ownerId,
+    memberIds,
+    memberNames,
+    language,
+  ];
 }
 
 enum PlannedStage { onList, toCook, cooking }
@@ -61,6 +185,7 @@ final class PlannedRecipe extends Equatable {
     required this.addedAt,
     this.excluded = const ISetConst({}),
     this.done = const ISetConst({}),
+    this.addedBy,
     this.shoppedAt,
     this.cookingStartedAt,
   });
@@ -69,6 +194,7 @@ final class PlannedRecipe extends Equatable {
   final String recipeId;
   final int servings;
   final DateTime addedAt;
+  final String? addedBy;
 
   /// Ingredient IDs the kitchen already has for this recipe.
   final ISet<String> excluded;
@@ -91,6 +217,7 @@ final class PlannedRecipe extends Equatable {
     recipeId,
     servings,
     addedAt,
+    addedBy,
     excluded,
     done,
     shoppedAt,
@@ -104,6 +231,7 @@ final class ListItem extends Equatable {
     required this.id,
     required this.name,
     required this.addedAt,
+    this.addedBy,
     this.key,
     this.quantity = const Unspecified(),
     this.unit,
@@ -112,6 +240,7 @@ final class ListItem extends Equatable {
   final String id;
   final String name;
   final DateTime addedAt;
+  final String? addedBy;
 
   /// Null until the item has been matched; until then it isn't merged.
   final String? key;
@@ -120,7 +249,7 @@ final class ListItem extends Equatable {
   final Unit? unit;
 
   @override
-  List<Object?> get props => [id, name, addedAt, key, quantity, unit];
+  List<Object?> get props => [id, name, addedAt, addedBy, key, quantity, unit];
 }
 
 /// What makes a line on the shopping list: lines merge per key and measure.
@@ -133,7 +262,7 @@ final class LineId extends Equatable {
   final String key;
   final Measure measure;
 
-  String get documentId => '${keySlug(key)}--${measure.id}';
+  String get documentId => '${keySlug(key)}--${keySlug(measure.id)}';
 
   @override
   List<Object> get props => [key, measure];

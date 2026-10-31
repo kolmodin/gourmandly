@@ -41,7 +41,7 @@ final class Unspecified extends Quantity {
   List<Object> get props => [];
 }
 
-/// The factor that takes a recipe for [from] servings to [to] servings. A
-/// recipe without a usable servings count isn't scaled at all.
+/// The factor that takes a recipe for [from] servings to [to] servings. Without
+/// usable servings counts the recipe isn't scaled at all.
 Fraction scaleFactor({required int from, required int to}) =>
-    from > 0 ? Fraction(to, from) : Fraction.one;
+    from > 0 && to > 0 ? Fraction(to, from) : Fraction.one;
