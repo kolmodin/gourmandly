@@ -1,11 +1,12 @@
 rules_version = '2';
 
-// Placeholder: deny everything. The real rules (kitchen membership) are
-// written together with their tests.
+// Recipe photos are readable by the members of their kitchen. Only Cloud
+// Functions write them.
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if false;
+    match /kitchens/{kitchenId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid in
+        firestore.get(/databases/(default)/documents/kitchens/$(kitchenId)).data.memberIds;
     }
   }
 }
