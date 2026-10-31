@@ -72,16 +72,49 @@
             packages = java.packages ++ [ pkgs.firebase-tools ];
             env = java.env;
           };
+          # A browser and a chromedriver of the same major version, for
+          # integration tests (flutter drive). Chromium isn't packaged for
+          # macOS, so macOS uses Google Chrome.
+          browser =
+            let
+              chrome =
+                if pkgs.stdenv.hostPlatform.isDarwin then
+                  "${pkgs.google-chrome}/bin/google-chrome-stable"
+                else
+                  "${pkgs.chromium}/bin/chromium";
+            in
+            {
+              packages = [ pkgs.chromedriver ];
+              env.CHROME_EXECUTABLE = chrome;
+            };
         };
+
+      packagesOf = pkgs: sets: pkgs.lib.concatMap (s: s.packages) sets;
+      envOf = pkgs: sets: pkgs.lib.foldl' (acc: s: acc // (s.env or { })) { } sets;
 
       shell =
         pkgs: sets:
-        pkgs.mkShell (
-          {
-            packages = pkgs.lib.concatMap (s: s.packages) sets;
-          }
-          // pkgs.lib.foldl' (acc: s: acc // (s.env or { })) { } sets
-        );
+        pkgs.mkShell ({ packages = packagesOf pkgs sets; } // envOf pkgs sets);
+
+      # A `nix run` target: a script from scripts/ with exactly the given tool
+      # sets on its PATH.
+      app =
+        pkgs: name: sets: script:
+        let
+          drv = pkgs.writeShellApplication {
+            inherit name;
+            runtimeInputs = packagesOf pkgs sets ++ [
+              pkgs.git
+              pkgs.curl
+            ];
+            runtimeEnv = envOf pkgs sets;
+            text = builtins.readFile script;
+          };
+        in
+        {
+          type = "app";
+          program = "${drv}/bin/${name}";
+        };
     in
     {
       devShells = forAllSystems (
@@ -96,6 +129,7 @@
             t.android
             t.node
             t.firebase
+            t.browser
           ];
 
           # CI jobs.
@@ -113,7 +147,33 @@
             t.flutter
             t.node
             t.firebase
+            t.browser
           ]; # app tests against the emulators
+        }
+      );
+
+      apps = forAllSystems (
+        pkgs:
+        let
+          t = toolsFor pkgs;
+        in
+        {
+          # Emulators plus the web app with hot reload.
+          default = app pkgs "gourmandly-dev" [
+            t.flutter
+            t.node
+            t.firebase
+          ] ./scripts/dev.sh;
+          emulators = app pkgs "gourmandly-emulators" [
+            t.node
+            t.firebase
+          ] ./scripts/emulators.sh;
+          test = app pkgs "gourmandly-test" [
+            t.flutter
+            t.node
+            t.firebase
+            t.browser
+          ] ./scripts/test.sh;
         }
       );
     };

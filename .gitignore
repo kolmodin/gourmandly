@@ -3,3 +3,10 @@
 
 # macOS
 .DS_Store
+
+# Firebase emulators
+firebase/.emulator-data/
+firebase/*.log
+
+# Dart workspace
+.dart_tool/
