@@ -5,13 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 sealed class Environment {
   const Environment();
 
-  static Environment fromDefine() => switch (const String.fromEnvironment(
-    'GOURMANDLY_ENV',
-    defaultValue: 'local',
-  )) {
-    'local' => const Local(),
-    final other => throw UnsupportedError('Unknown GOURMANDLY_ENV: $other'),
-  };
+  static Environment fromDefine() =>
+      switch (const String.fromEnvironment('GOURMANDLY_ENV')) {
+        'local' => const Local(),
+        '' => throw UnsupportedError('Build with GOURMANDLY_ENV set'),
+        final other => throw UnsupportedError('Unknown GOURMANDLY_ENV: $other'),
+      };
 
   FirebaseOptions get options;
 }
