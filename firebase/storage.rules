@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Placeholder: deny everything. The real rules (kitchen membership) are
+// written together with their tests.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
