@@ -1,0 +1,14 @@
+name: domain
+description: Pure domain logic for Gourmandly, independent of Flutter and Firebase.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+resolution: workspace
+dev_dependencies:
+  glados: ^1.1.7
+  lints: ^6.1.0
+  test: ^1.31.1
+dependencies:
+  fast_immutable_collections: ^12.0.0
