@@ -10,3 +10,9 @@ firebase/*.log
 
 # Dart workspace
 .dart_tool/
+
+# Test coverage
+coverage/
+
+# Build output
+build/

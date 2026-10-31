@@ -13,9 +13,16 @@ if has_files "$root/functions/src/**/*.test.ts" || has_files "$root/functions/sr
 fi
 
 echo "== Domain"
-if has_files "$root/packages/domain/test/*_test.dart"; then
-  (cd "$root/packages/domain" && flutter test)
-fi
+(cd "$root/packages/domain" && flutter test --coverage)
+awk -F: -v minimum=95 '
+  /^LF:/ { found += $2 }
+  /^LH:/ { hit += $2 }
+  END {
+    coverage = 100 * hit / found
+    printf "Domain line coverage: %.1f%% (minimum %d%%)\n", coverage, minimum
+    exit coverage < minimum
+  }
+' "$root/packages/domain/coverage/lcov.info"
 
 echo "== App unit tests"
 if has_files "$root/app/test/*_test.dart"; then
