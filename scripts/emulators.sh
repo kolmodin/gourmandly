@@ -6,7 +6,7 @@ root=$(git rev-parse --show-toplevel)
 
 (cd "$root/functions" && { [ -d node_modules ] || npm ci; } && npm run build)
 
-cd "$root/firebase"
+cd "$root"
 import=()
-[ -d .emulator-data ] && import=(--import .emulator-data)
-exec firebase emulators:start "${import[@]}" --export-on-exit .emulator-data
+[ -d firebase/.emulator-data ] && import=(--import firebase/.emulator-data)
+exec firebase emulators:start "${import[@]}" --export-on-exit firebase/.emulator-data

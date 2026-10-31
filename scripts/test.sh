@@ -4,8 +4,6 @@ set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
 
-has_files() { compgen -G "$1" >/dev/null; }
-
 echo "== Functions"
 (
   cd "$root/functions"
@@ -17,14 +15,14 @@ echo "== Functions"
 
 echo "== Security Rules"
 (
-  cd "$root/firebase"
+  cd "$root"
   firebase emulators:exec --only firestore,storage \
     "cd '$root/functions' && npm run test:rules"
 )
 
 echo "== Functions integration tests"
 (
-  cd "$root/firebase"
+  cd "$root"
   firebase emulators:exec --only auth,firestore,functions,storage \
     "cd '$root/functions' && npm run test:integration"
 )
@@ -42,16 +40,19 @@ awk -F: -v minimum=95 '
 ' "$root/packages/domain/coverage/lcov.info"
 
 echo "== App unit tests"
-if has_files "$root/app/test/*_test.dart"; then
-  (cd "$root/app" && flutter test)
-fi
+(cd "$root/app" && flutter test)
 
 echo "== Integration tests"
+if curl -sf http://127.0.0.1:4444/status >/dev/null; then
+  echo "Something is already listening on port 4444, stop it first." >&2
+  exit 1
+fi
 chromedriver --port=4444 >/dev/null 2>&1 &
 chromedriver_pid=$!
 trap 'kill "$chromedriver_pid" 2>/dev/null || true' EXIT
+until curl -sf http://127.0.0.1:4444/status >/dev/null; do sleep 0.2; done
 
-cd "$root/firebase"
+cd "$root"
 for target in "$root"/app/integration_test/*_test.dart; do
   firebase emulators:exec --only auth,firestore,functions,storage \
     "cd '$root/app' && flutter drive -d web-server --browser-name=chrome \

@@ -10,17 +10,23 @@ log="$root/firebase/emulators.log"
 tsc_pid=$!
 
 (
-  cd "$root/firebase"
+  cd "$root"
   import=()
-  [ -d .emulator-data ] && import=(--import .emulator-data)
-  exec firebase emulators:start "${import[@]}" --export-on-exit .emulator-data
+  [ -d firebase/.emulator-data ] && import=(--import firebase/.emulator-data)
+  exec firebase emulators:start "${import[@]}" --export-on-exit firebase/.emulator-data
 ) >"$log" 2>&1 &
 emulators_pid=$!
 
+interrupted=false
+trap 'interrupted=true' INT
+
 cleanup() {
   kill "$tsc_pid" 2>/dev/null || true
-  # SIGINT lets the emulators export their data before exiting.
-  kill -INT "$emulators_pid" 2>/dev/null || true
+  # SIGINT lets the emulators export their data before exiting. Ctrl-C has
+  # already sent them one, and a second would cut the export short.
+  if [ "$interrupted" = false ]; then
+    kill -INT "$emulators_pid" 2>/dev/null || true
+  fi
   wait "$emulators_pid" 2>/dev/null || true
 }
 trap cleanup EXIT

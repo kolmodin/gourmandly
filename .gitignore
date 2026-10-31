@@ -7,6 +7,7 @@
 # Firebase emulators
 firebase/.emulator-data/
 firebase/*.log
+*-debug.log
 
 # Dart workspace
 .dart_tool/
