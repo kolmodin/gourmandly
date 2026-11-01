@@ -1,35 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
+import 'app.dart';
 import 'firebase/environment.dart';
 import 'firebase/initialize.dart';
+import 'firebase/overrides.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeFirebase(Environment.fromDefine());
-  runApp(const ProviderScope(child: GourmandlyApp()));
-}
-
-final _router = GoRouter(
-  routes: [GoRoute(path: '/', builder: (context, state) => const _Home())],
-);
-
-class GourmandlyApp extends StatelessWidget {
-  const GourmandlyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) => MaterialApp.router(
-    title: 'Gourmandly',
-    theme: ThemeData(colorSchemeSeed: Colors.deepOrange),
-    routerConfig: _router,
+  usePathUrlStrategy();
+  final environment = Environment.fromDefine();
+  await initializeFirebase(environment);
+  runApp(
+    ProviderScope(
+      overrides: firebaseOverrides(environment),
+      child: const GourmandlyApp(),
+    ),
   );
-}
-
-class _Home extends StatelessWidget {
-  const _Home();
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Gourmandly')));
 }

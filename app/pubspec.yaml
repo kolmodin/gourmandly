@@ -25,6 +25,8 @@ dependencies:
   wakelock_plus: ^1.8.2
   equatable: ^3.0.0
   web: ^1.1.2
+  flutter_web_plugins:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +40,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Young Serif
+      fonts:
+        - asset: assets/fonts/YoungSerif-Regular.ttf
+    - family: Familjen Grotesk
+      fonts:
+        - asset: assets/fonts/FamiljenGrotesk-Variable.ttf
