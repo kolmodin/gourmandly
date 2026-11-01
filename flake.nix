@@ -174,6 +174,12 @@
             t.firebase
             t.browser
           ] ./scripts/test.sh;
+          screenshots = app pkgs "gourmandly-screenshots" [
+            t.flutter
+            t.node
+            t.firebase
+            t.browser
+          ] ./scripts/screenshots.sh;
         }
       );
     };

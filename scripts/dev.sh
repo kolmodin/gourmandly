@@ -36,6 +36,7 @@ until curl -sf http://127.0.0.1:4400/emulators >/dev/null; do
   kill -0 "$emulators_pid" 2>/dev/null || { cat "$log"; exit 1; }
   sleep 1
 done
+(cd "$root/functions" && npm run seed --silent)
 echo "Emulator UI: http://127.0.0.1:4000"
 echo "Web app:     http://localhost:8000"
 

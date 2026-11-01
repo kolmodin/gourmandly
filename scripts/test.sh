@@ -55,7 +55,8 @@ until curl -sf http://127.0.0.1:4444/status >/dev/null; do sleep 0.2; done
 cd "$root"
 for target in "$root"/app/integration_test/*_test.dart; do
   firebase emulators:exec --only auth,firestore,functions,storage \
-    "cd '$root/app' && flutter drive -d web-server --browser-name=chrome \
+    "cd '$root/functions' && npm run seed && cd '$root/app' && \
+      flutter drive -d web-server --browser-name=chrome \
       --chrome-binary='$CHROME_EXECUTABLE' \
       --driver=test_driver/integration_test.dart --target='$target'"
 done
