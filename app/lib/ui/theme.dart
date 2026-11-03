@@ -5,6 +5,7 @@ abstract final class Palette {
   static const enamel = Color(0xFFF4F7F6);
   static const plate = Color(0xFFFFFFFF);
   static const cobalt = Color(0xFF1C3FAA);
+  static const cobaltPale = Color(0xFFB3BFE3);
   static const ink = Color(0xFF141E33);
   static const pewter = Color(0xFF5B6679);
   static const hairline = Color(0xFFDCE2E5);
@@ -154,3 +155,9 @@ ThemeData gourmandlyTheme() {
     ),
   );
 }
+
+/// A text button whose label lines up with the text above it.
+final flushTextButton = TextButton.styleFrom(
+  padding: EdgeInsets.zero,
+  minimumSize: const Size(0, 48),
+);

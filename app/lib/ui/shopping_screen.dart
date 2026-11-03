@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../state/providers.dart';
 import 'plate.dart';
@@ -9,7 +12,10 @@ import 'theme.dart';
 import 'tick.dart';
 
 class ShoppingScreen extends ConsumerStatefulWidget {
-  const ShoppingScreen({super.key});
+  const ShoppingScreen({this.focusEntryId, super.key});
+
+  /// A planned recipe to show in the by-recipe view: "see what's missing".
+  final String? focusEntryId;
 
   @override
   ConsumerState<ShoppingScreen> createState() => _ShoppingScreenState();
@@ -17,7 +23,34 @@ class ShoppingScreen extends ConsumerStatefulWidget {
 
 class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   final _newItem = TextEditingController();
-  bool _byRecipe = false;
+  final _focused = GlobalKey();
+  late bool _byRecipe = widget.focusEntryId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollToFocused();
+  }
+
+  @override
+  void didUpdateWidget(ShoppingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusEntryId != null &&
+        widget.focusEntryId != oldWidget.focusEntryId) {
+      _byRecipe = true;
+      _scrollToFocused();
+    }
+  }
+
+  void _scrollToFocused() {
+    if (widget.focusEntryId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _focused.currentContext;
+      if (target != null && target.mounted) {
+        unawaited(Scrollable.ensureVisible(target, alignment: 0.1));
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -182,7 +215,11 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   ),
                 )
               else if (_byRecipe)
-                _ByRecipe(view: view)
+                _ByRecipe(
+                  view: view,
+                  focusEntryId: widget.focusEntryId,
+                  focusKey: _focused,
+                )
               else ...[
                 for (final line in open) _LineRow(line: line),
                 if (checked.isNotEmpty)
@@ -316,21 +353,54 @@ class _AtHomeRow extends ConsumerWidget {
 }
 
 class _ByRecipe extends ConsumerWidget {
-  const _ByRecipe({required this.view});
+  const _ByRecipe({
+    required this.view,
+    required this.focusEntryId,
+    required this.focusKey,
+  });
 
   final ByRecipeView view;
+  final String? focusEntryId;
+  final GlobalKey focusKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actions = ref.read(kitchenActionsProvider);
+    final state = ref.watch(kitchenDataProvider).value?.state;
+    final bought = [
+      if (state != null)
+        for (final entry in toCook(state))
+          if (entry.stage != PlannedStage.onList)
+            if (state.recipes[entry.recipeId] case final recipe?)
+              (entry, recipe),
+    ];
+
+    void markBought(PlannedRecipe entry) {
+      actions.apply([markShopped(entry, now: actions.now)]);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Marked as bought'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () => actions.apply([unmarkShopped(entry)]),
+          ),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final group in view.recipes) ...[
           const SizedBox(height: 14),
           Row(
+            key: group.entry.id == focusEntryId ? focusKey : null,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 52, child: Plate(recipe: group.recipe)),
+              SizedBox(
+                width: 52,
+                child: Plate(recipe: group.recipe, rim: Palette.cobaltPale),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -341,12 +411,24 @@ class _ByRecipe extends ConsumerWidget {
                       '${group.entry.servings} servings',
                       style: Fonts.sans(13, color: Palette.pewter),
                     ),
+                    Wrap(
+                      spacing: 20,
+                      children: [
+                        TextButton(
+                          style: flushTextButton,
+                          onPressed: () => markBought(group.entry),
+                          child: const Text('Already bought'),
+                        ),
+                        TextButton(
+                          style: flushTextButton,
+                          onPressed: () =>
+                              actions.apply([DeletePlanned(group.entry.id)]),
+                          child: const Text('Remove'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ),
-              TextButton(
-                onPressed: () => actions.apply([DeletePlanned(group.entry.id)]),
-                child: const Text('Remove'),
               ),
             ],
           ),
@@ -388,6 +470,37 @@ class _ByRecipe extends ConsumerWidget {
           const SizedBox(height: 18),
           Text('Added by hand', style: Fonts.serif(18)),
           for (final line in view.items) _LineRow(line: line),
+        ],
+        if (bought.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          Text('Already bought', style: Fonts.serif(18)),
+          Text(
+            'These are under To cook on the home screen.',
+            style: Fonts.sans(13, color: Palette.pewter),
+          ),
+          for (final (entry, recipe) in bought)
+            InkWell(
+              onTap: () => context.push('/recipes/${recipe.id}'),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      child: Plate(recipe: recipe, rim: rimFor(entry.stage)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(recipe.title, style: Fonts.sans(16))),
+                    if (entry.stage == PlannedStage.cooking)
+                      Text(
+                        'Cooking now',
+                        style: Fonts.sans(13, color: Palette.saffronInk),
+                      ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ],
     );

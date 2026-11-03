@@ -23,7 +23,37 @@ void main() {
       expect(find.text('Cooking now'), findsOneWidget);
     });
 
-    testWidgets('leaves out "To cook" when nothing is shopped', (tester) async {
+    testWidgets('shows what is still to buy for a recipe on the list', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith(planned: [entryFor('soup')])),
+      );
+      expect(find.text('To cook'), findsOneWidget);
+      expect(find.text('2 to buy'), findsOneWidget);
+    });
+
+    testWidgets('says when everything for a recipe is ticked', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(
+          kitchenWith(
+            planned: [entryFor('stew')],
+            checks: [
+              Check(
+                line: const LineId('onion', BaseMeasure.count),
+                quantity: Fraction(1),
+                at: now,
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(find.text('All ticked'), findsOneWidget);
+    });
+
+    testWidgets('leaves out "To cook" when nothing is planned', (tester) async {
       await pumpApp(tester, kitchens: FakeKitchens(kitchenWith()));
       expect(find.text('To cook'), findsNothing);
       expect(find.text('Löksoppa'), findsOneWidget);
@@ -202,6 +232,40 @@ void main() {
       expect(kitchens.state.planned.single.excluded, contains('onion'));
     });
 
+    testWidgets('the by-recipe view can mark a recipe as bought, with undo', (
+      tester,
+    ) async {
+      final kitchens = await open(tester);
+      final before = kitchens.state;
+      await tester.tap(find.text('By recipe'));
+      await settle(tester);
+      await tester.tap(find.text('Already bought'));
+      await settle(tester);
+      expect(kitchens.state.planned.single.stage, PlannedStage.toCook);
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(kitchens.state, before);
+    });
+
+    testWidgets('the by-recipe view lists what is already bought', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        entries: [
+          entryFor('soup'),
+          entryFor('stew', id: 'e2', shoppedAt: now),
+        ],
+      );
+      await tester.tap(find.text('By recipe'));
+      await settle(tester);
+      expect(find.text('Already bought'), findsNWidgets(2));
+      expect(find.text('Gryta'), findsOneWidget);
+      await tester.tap(find.text('Gryta'));
+      await settle(tester);
+      expect(find.byType(RecipeScreen), findsOneWidget);
+    });
+
     testWidgets('an empty list says what to do', (tester) async {
       await open(tester, entries: []);
       expect(find.textContaining('The list is empty'), findsOneWidget);
@@ -248,6 +312,52 @@ void main() {
       await tester.tap(find.text('Undo'));
       await settle(tester);
       expect(kitchens.state, before);
+    });
+
+    testWidgets('says what is still to buy while on the list', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith(planned: [entryFor('soup')])),
+        location: '/recipes/soup',
+      );
+      expect(
+        find.text('Still on the shopping list, with 2 ingredients to buy.'),
+        findsOneWidget,
+      );
+      expect(find.text('Add to shopping list'), findsNothing);
+    });
+
+    testWidgets('can be marked as bought, with undo', (tester) async {
+      final kitchens = FakeKitchens(kitchenWith(planned: [entryFor('soup')]));
+      final before = kitchens.state;
+      await pumpApp(tester, kitchens: kitchens, location: '/recipes/soup');
+      await tester.tap(find.text('Already bought'));
+      await settle(tester);
+      expect(kitchens.state.planned.single.stage, PlannedStage.toCook);
+      expect(find.textContaining('Still on the shopping list'), findsNothing);
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(kitchens.state, before);
+    });
+
+    testWidgets('shows what is missing on the shopping list', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(
+          kitchenWith(
+            planned: [
+              entryFor('stew', id: 'e0'),
+              entryFor('soup', id: 'e1'),
+            ],
+          ),
+        ),
+        location: '/recipes/soup',
+      );
+      await tester.tap(find.text('See what\'s missing'));
+      await settle(tester);
+      expect(find.byType(RecipeScreen), findsNothing);
+      expect(find.text('Remove'), findsNWidgets(2));
+      expect(find.text('4 st onion'), findsOneWidget);
     });
 
     testWidgets('a recipe that is not planned simply starts', (tester) async {

@@ -12,14 +12,16 @@ const cookingLifetime = Duration(hours: 24);
 DateTime _shoppedTime(PlannedRecipe entry) =>
     entry.shoppedAt ?? entry.cookingStartedAt ?? entry.addedAt;
 
-/// The "To cook" list: recipes being cooked first, then shopped ones, oldest
-/// first.
+/// The "To cook" list: every planned recipe, those being cooked first, then
+/// shopped ones, then those still on the shopping list, each oldest first.
 IList<PlannedRecipe> toCook(KitchenState state) {
-  int rank(PlannedRecipe entry) => entry.stage == PlannedStage.cooking ? 0 : 1;
+  int rank(PlannedRecipe entry) => switch (entry.stage) {
+    PlannedStage.cooking => 0,
+    PlannedStage.toCook => 1,
+    PlannedStage.onList => 2,
+  };
 
-  return (state.planned
-          .where((entry) => entry.stage != PlannedStage.onList)
-          .toList()
+  return (state.planned.toList()
         ..sort((a, b) {
           final byRank = rank(a).compareTo(rank(b));
           if (byRank != 0) return byRank;
@@ -74,8 +76,13 @@ Effect excludeIngredient(PlannedRecipe entry, String ingredientId) =>
 Effect includeIngredient(PlannedRecipe entry, String ingredientId) =>
     UpdatePlanned(entry.id, removeExcluded: {ingredientId}.lock);
 
+/// What "Already bought" does: takes the recipe off the shopping list.
 Effect markShopped(PlannedRecipe entry, {required DateTime now}) =>
     UpdatePlanned(entry.id, shoppedAt: now);
+
+/// Takes back [markShopped].
+Effect unmarkShopped(PlannedRecipe entry) =>
+    UpdatePlanned(entry.id, clearShoppedAt: true);
 
 /// Puts a staple back on the shopping list, this time around.
 Effect bringStapleBack(String key) =>

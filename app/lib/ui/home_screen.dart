@@ -196,6 +196,9 @@ class _ToCook extends StatelessWidget {
         if (data.state.recipes[entry.recipeId] case final recipe?)
           (entry, recipe),
     ];
+    final groups = {
+      for (final group in byRecipe(data.state).recipes) group.entry.id: group,
+    };
     final plate = wide ? 210.0 : 164.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,7 +208,7 @@ class _ToCook extends StatelessWidget {
           child: Text('To cook', style: Fonts.serif(22)),
         ),
         SizedBox(
-          height: plate + 62,
+          height: plate + 74,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: gutter),
@@ -214,6 +217,7 @@ class _ToCook extends StatelessWidget {
             itemBuilder: (context, index) {
               final (entry, recipe) = entries[index];
               final cooking = entry.stage == PlannedStage.cooking;
+              final toBuy = groups[entry.id]?.toBuy;
               return SizedBox(
                 width: plate,
                 child: InkWell(
@@ -222,10 +226,7 @@ class _ToCook extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Plate(
-                        recipe: recipe,
-                        rim: cooking ? Palette.saffron : Palette.cobalt,
-                      ),
+                      Plate(recipe: recipe, rim: rimFor(entry.stage)),
                       const SizedBox(height: 10),
                       Text(
                         recipe.title,
@@ -237,6 +238,11 @@ class _ToCook extends StatelessWidget {
                         Text(
                           'Cooking now',
                           style: Fonts.sans(13, color: Palette.saffronInk),
+                        )
+                      else if (toBuy != null)
+                        Text(
+                          toBuyText(toBuy),
+                          style: Fonts.sans(13, color: Palette.pewter),
                         ),
                     ],
                   ),
@@ -249,6 +255,9 @@ class _ToCook extends StatelessWidget {
     );
   }
 }
+
+/// What is left to buy for a recipe still on the shopping list.
+String toBuyText(int toBuy) => toBuy == 0 ? 'All ticked' : '$toBuy to buy';
 
 class _RecipeOnTable extends StatelessWidget {
   const _RecipeOnTable({required this.recipe});

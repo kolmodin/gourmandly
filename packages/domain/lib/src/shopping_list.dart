@@ -389,6 +389,11 @@ final class RecipeGroup extends Equatable {
   final Recipe recipe;
   final IList<RecipeItem> items;
 
+  /// How many of [items] are still to be bought: neither ticked nor staples.
+  int get toBuy => items
+      .where((item) => !item.isHidden && item.status is! FullyChecked)
+      .length;
+
   @override
   List<Object> get props => [entry, recipe, items];
 }

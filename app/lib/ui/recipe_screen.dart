@@ -89,6 +89,20 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
     ).showSnackBar(const SnackBar(content: Text('Added to the shopping list')));
   }
 
+  void _markBought(PlannedRecipe entry) {
+    final actions = ref.read(kitchenActionsProvider);
+    actions.apply([markShopped(entry, now: actions.now)]);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Marked as bought'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => actions.apply([unmarkShopped(entry)]),
+        ),
+      ),
+    );
+  }
+
   void _done(PlannedRecipe entry) {
     final actions = ref.read(kitchenActionsProvider);
     actions.apply([doneCooking(entry, now: actions.now)]);
@@ -112,6 +126,13 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
     final entry = plannedEntryFor(state, recipe.id);
     final cooking = entry?.stage == PlannedStage.cooking;
     _keepScreen(cooking);
+    final rim = rimFor(entry?.stage);
+    final toBuy = ref
+        .watch(byRecipeProvider)
+        ?.recipes
+        .where((group) => group.entry.id == entry?.id)
+        .firstOrNull
+        ?.toBuy;
 
     final servings = _servings ?? entry?.servings ?? recipe.servings;
     final original = recipe.original;
@@ -135,6 +156,9 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
       onStart: () => _start(recipe, entry, servings),
       onAdd: () => _addToList(recipe, servings),
       onDone: () => _done(entry!),
+      toBuy: toBuy,
+      onMissing: () => context.go('/list?entry=${entry!.id}'),
+      onBought: () => _markBought(entry!),
     );
     final ingredientList = _Ingredients(
       ingredients: ingredients,
@@ -155,7 +179,7 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
                   _WideHeader(
                     recipe: recipe,
                     title: title,
-                    cooking: cooking,
+                    rim: rim,
                     controls: controls,
                   ),
                   const Divider(),
@@ -186,7 +210,7 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
             : ListView(
                 padding: const EdgeInsets.only(bottom: 40),
                 children: [
-                  _Header(recipe: recipe, title: title, cooking: cooking),
+                  _Header(recipe: recipe, title: title, rim: rim),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -209,15 +233,11 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
 
 /// The plate runs off the corner of the screen, with the title beneath it.
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.recipe,
-    required this.title,
-    required this.cooking,
-  });
+  const _Header({required this.recipe, required this.title, required this.rim});
 
   final Recipe recipe;
   final String title;
-  final bool cooking;
+  final Color rim;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -238,10 +258,7 @@ class _Header extends StatelessWidget {
                   top: visible - plate,
                   width: plate,
                   height: plate,
-                  child: Plate(
-                    recipe: recipe,
-                    rim: cooking ? Palette.saffron : Palette.cobalt,
-                  ),
+                  child: Plate(recipe: recipe, rim: rim),
                 ),
                 Positioned(
                   left: 8,
@@ -276,13 +293,13 @@ class _WideHeader extends StatelessWidget {
   const _WideHeader({
     required this.recipe,
     required this.title,
-    required this.cooking,
+    required this.rim,
     required this.controls,
   });
 
   final Recipe recipe;
   final String title;
-  final bool cooking;
+  final Color rim;
   final Widget controls;
 
   @override
@@ -296,10 +313,7 @@ class _WideHeader extends StatelessWidget {
             top: -116,
             width: plate,
             height: plate,
-            child: Plate(
-              recipe: recipe,
-              rim: cooking ? Palette.saffron : Palette.cobalt,
-            ),
+            child: Plate(recipe: recipe, rim: rim),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(32, 16, 280, 20),
@@ -343,6 +357,9 @@ class _Controls extends StatelessWidget {
     required this.onStart,
     required this.onAdd,
     required this.onDone,
+    required this.toBuy,
+    required this.onMissing,
+    required this.onBought,
   });
 
   final Recipe recipe;
@@ -354,6 +371,11 @@ class _Controls extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback onAdd;
   final VoidCallback onDone;
+
+  /// What is left to buy, while the recipe is on the shopping list.
+  final int? toBuy;
+  final VoidCallback onMissing;
+  final VoidCallback onBought;
 
   @override
   Widget build(BuildContext context) {
@@ -406,6 +428,32 @@ class _Controls extends StatelessWidget {
             ],
             selected: {showOriginal},
             onSelectionChanged: (selected) => onOriginal(selected.first),
+          ),
+        ],
+        if (onList) ...[
+          const SizedBox(height: 16),
+          Text(switch (toBuy) {
+            null => 'Still on the shopping list.',
+            0 => 'Still on the shopping list. Everything is ticked.',
+            1 => 'Still on the shopping list, with 1 ingredient to buy.',
+            final n =>
+              'Still on the shopping list, with $n ingredients '
+                  'to buy.',
+          }, style: Fonts.sans(15, color: Palette.pewter)),
+          Wrap(
+            spacing: 20,
+            children: [
+              TextButton(
+                style: flushTextButton,
+                onPressed: onMissing,
+                child: const Text('See what\'s missing'),
+              ),
+              TextButton(
+                style: flushTextButton,
+                onPressed: onBought,
+                child: const Text('Already bought'),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: 16),

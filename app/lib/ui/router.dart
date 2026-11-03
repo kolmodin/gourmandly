@@ -59,7 +59,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
           GoRoute(
             path: '/list',
-            builder: (context, state) => const ShoppingScreen(),
+            builder: (context, state) => ShoppingScreen(
+              focusEntryId: state.uri.queryParameters['entry'],
+            ),
           ),
         ],
       ),

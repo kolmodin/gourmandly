@@ -769,6 +769,35 @@ void main() {
       expect(groups.last.items.last.status, isA<Unchecked>());
     });
 
+    test('counts what is still to buy', () {
+      final state = kitchen(
+        recipes: [
+          recipe('r', [
+            ingredient('salt'),
+            amountOfIngredient('onion', 1, st),
+            amountOfIngredient('cream', 1, dl),
+            amountOfIngredient('leek', 2, st),
+          ]),
+        ],
+        planned: [planned('e1', 'r')],
+        checks: [
+          Check(
+            line: const LineId('onion', BaseMeasure.count),
+            quantity: Fraction(1),
+            at: t0,
+          ),
+          Check(
+            line: const LineId('leek', BaseMeasure.count),
+            quantity: Fraction(1),
+            at: t0,
+          ),
+        ],
+        staples: {'salt'},
+      );
+      // Salt is a staple and the onion is ticked; half the leeks still count.
+      expect(byRecipe(state).recipes.single.toBuy, 2);
+    });
+
     test('an item without a quantity is just its name', () {
       final state = kitchen(
         recipes: [

@@ -8,6 +8,13 @@ import 'theme.dart';
 /// A recipe's photo as a plate: the food in the well, an enamel rim around it.
 /// The rim tells where the recipe is: cobalt, or saffron while it's cooking. A
 /// recipe without a photo is an empty plate.
+/// The rim of a recipe's plate shows how far along it is.
+Color rimFor(PlannedStage? stage) => switch (stage) {
+  PlannedStage.cooking => Palette.saffron,
+  PlannedStage.onList => Palette.cobaltPale,
+  PlannedStage.toCook || null => Palette.cobalt,
+};
+
 class Plate extends ConsumerWidget {
   const Plate({required this.recipe, this.rim = Palette.cobalt, super.key});
 

@@ -76,6 +76,17 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
 
     await until(tester, find.text('To cook'));
+    await tester.ensureVisible(find.text('Spaghetti carbonara').first);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Spaghetti carbonara').first);
+    await until(tester, find.text('Already bought'));
+    await shoot(tester, 'recipe-shopping');
+    await tester.tap(find.text('See what\'s missing'));
+    await until(tester, find.text('Added by hand'));
+    await shoot(tester, 'list-missing');
+    await tester.tap(find.text('Recipes'));
+
+    await until(tester, find.text('To cook'));
     await tester.tap(find.text('Shopping list'));
     await until(tester, find.text('Add an item'));
     await shoot(tester, 'list');

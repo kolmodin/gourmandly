@@ -28,16 +28,20 @@ void main() {
   });
 
   group('toCook', () {
-    test('lists shopped recipes, with cooking ones first', () {
+    test('lists cooking, then shopped, then still-shopping recipes', () {
       final state = kitchen(
         planned: [
           planned('a', 'r', shoppedAt: t0),
-          planned('b', 'r'),
+          planned('b', 'r', addedAt: later),
           planned('c', 'r', shoppedAt: later, cookingStartedAt: later),
           planned('d', 'r', shoppedAt: t0.subtract(const Duration(hours: 1))),
+          planned('e', 'r', addedAt: t0),
         ],
       );
-      expect([for (final e in toCook(state)) e.id], ['c', 'd', 'a']);
+      expect(
+        [for (final e in toCook(state)) e.id],
+        ['c', 'd', 'a', 'e', 'b'],
+      );
     });
 
     test('copes with a cooking entry without a shopped time', () {
@@ -138,6 +142,16 @@ void main() {
         markShopped(planned('e1', 'soup'), now: t0),
         UpdatePlanned('e1', shoppedAt: t0),
       );
+    });
+
+    test('is taken back by unmarkShopped', () {
+      final entry = planned('e1', 'soup');
+      final state = kitchen(recipes: [soup], planned: [entry]);
+      final after = applyEffects(state, [
+        markShopped(entry, now: t0),
+        unmarkShopped(entry),
+      ]);
+      expect(after, state);
     });
   });
 
