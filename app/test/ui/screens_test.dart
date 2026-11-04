@@ -32,7 +32,74 @@ void main() {
       );
       expect(find.text('To cook'), findsNothing);
       expect(find.text('Still shopping'), findsOneWidget);
-      expect(find.text('2 of 2 ingredients to buy'), findsOneWidget);
+      expect(find.text('Missing: onion, cream'), findsOneWidget);
+    });
+
+    testWidgets('shows what is missing without leaving home', (tester) async {
+      final kitchens = FakeKitchens(kitchenWith(planned: [entryFor('soup')]));
+      await pumpApp(tester, kitchens: kitchens);
+      await tester.tap(find.text('Missing: onion, cream'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('4 servings, 2 of 2 ingredients to buy'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('4 st onion'));
+      await settle(tester);
+      expect(kitchens.state.checks.single.line.key, 'onion');
+      expect(
+        find.text('4 servings, 1 of 2 ingredients to buy'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('4 st onion'));
+      await settle(tester);
+      expect(kitchens.state.checks, isEmpty);
+    });
+
+    testWidgets('the missing sheet says when a line is shared', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(
+          kitchenWith(
+            planned: [
+              entryFor('soup'),
+              entryFor('stew', id: 'e2'),
+            ],
+          ),
+        ),
+      );
+      await tester.tap(find.text('Löksoppa').first);
+      await tester.pumpAndSettle();
+      expect(find.text('On the list as 5 st onion'), findsOneWidget);
+    });
+
+    testWidgets('the missing sheet can mark a recipe as bought', (
+      tester,
+    ) async {
+      final kitchens = FakeKitchens(kitchenWith(planned: [entryFor('soup')]));
+      final before = kitchens.state;
+      await pumpApp(tester, kitchens: kitchens);
+      await tester.tap(find.text('Löksoppa').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Already bought'));
+      await tester.pumpAndSettle();
+      expect(kitchens.state.planned.single.stage, PlannedStage.toCook);
+      expect(find.text('Still shopping'), findsNothing);
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(kitchens.state, before);
+    });
+
+    testWidgets('the missing sheet opens the recipe', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith(planned: [entryFor('soup')])),
+      );
+      await tester.tap(find.text('Löksoppa').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open recipe'));
+      await settle(tester);
+      expect(find.byType(RecipeScreen), findsOneWidget);
     });
 
     testWidgets('counts ticked ingredients as bought', (tester) async {
@@ -51,7 +118,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('1 of 2 ingredients to buy'), findsOneWidget);
+      expect(find.text('Missing: cream'), findsOneWidget);
     });
 
     testWidgets('says when everything for a recipe is ticked', (tester) async {

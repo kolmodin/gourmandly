@@ -319,9 +319,11 @@ void main() {
       Amount? amount,
       bool isHidden = false,
       LineStatus status = const Unchecked(),
+      LineId line = const LineId('a', BaseMeasure.none),
     }) => RecipeItem(
       ingredient: of ?? ingredient('a'),
       amount: amount,
+      line: line,
       isHidden: isHidden,
       status: status,
     );
@@ -329,6 +331,7 @@ void main() {
     hasValueEquality('RecipeItem', recipeItem, [
       recipeItem(of: ingredient('x')),
       recipeItem(amount: amount),
+      recipeItem(line: const LineId('b', BaseMeasure.none)),
       recipeItem(isHidden: true),
       recipeItem(status: FullyChecked(t0)),
     ]);

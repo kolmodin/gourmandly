@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../data/repositories.dart';
 import '../state/providers.dart';
 import 'photo.dart';
+import 'still_shopping.dart';
 import 'theme.dart';
 
 const _categoryNames = {
@@ -86,7 +87,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           if (!searching && stillShopping.isNotEmpty)
             SliverToBoxAdapter(
-              child: _StillShopping(groups: stillShopping, gutter: gutter),
+              child: StillShopping(groups: stillShopping, gutter: gutter),
             ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(gutter, 28, gutter, 16),
@@ -250,79 +251,6 @@ class _ToCook extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Planned recipes still on the shopping list, with how much is left to buy.
-class _StillShopping extends StatelessWidget {
-  const _StillShopping({required this.groups, required this.gutter});
-
-  final IList<RecipeGroup> groups;
-  final double gutter;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: gutter),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            Expanded(child: Text('Still shopping', style: Fonts.serif(22))),
-            TextButton(
-              style: flushTextButton,
-              onPressed: () => context.go('/list'),
-              child: const Text('Shopping list'),
-            ),
-          ],
-        ),
-        for (final group in groups)
-          InkWell(
-            onTap: () => context.push('/recipes/${group.recipe.id}'),
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  SizedBox.square(
-                    dimension: 56,
-                    child: RecipePhoto(recipe: group.recipe),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          group.recipe.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Fonts.sans(16, weight: 600),
-                        ),
-                        Text(
-                          stillToBuy(group),
-                          style: Fonts.sans(13, color: Palette.pewter),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
-/// How much is left to buy for a recipe still on the shopping list:
-/// "3 of 4 ingredients to buy".
-String stillToBuy(RecipeGroup group) {
-  final all = group.toBuy + group.bought;
-  return group.toBuy == 0
-      ? 'All ticked'
-      : '${group.toBuy} of $all ${all == 1 ? 'ingredient' : 'ingredients'} '
-            'to buy';
 }
 
 class _RecipeTile extends StatelessWidget {

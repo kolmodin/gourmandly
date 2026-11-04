@@ -79,7 +79,10 @@ void main() {
     await tester.ensureVisible(find.text('Spaghetti carbonara').first);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Spaghetti carbonara').first);
-    await until(tester, find.text('Already bought'));
+    await until(tester, find.text('Open recipe'));
+    await shoot(tester, 'home-missing');
+    await tester.tap(find.text('Open recipe'));
+    await until(tester, find.text('See what\'s missing'));
     await shoot(tester, 'recipe-shopping');
     await tester.tap(find.text('See what\'s missing'));
     await until(tester, find.text('Added by hand'));

@@ -767,6 +767,10 @@ void main() {
       final groups = byRecipe(state).recipes;
       expect(groups.first.items.single.status, isA<FullyChecked>());
       expect(groups.last.items.last.status, isA<Unchecked>());
+      expect(
+        groups.first.items.single.line,
+        const LineId('onion', BaseMeasure.count),
+      );
     });
 
     test('counts what is still to buy', () {
@@ -796,6 +800,10 @@ void main() {
       );
       // Salt is a staple and the onion is ticked; half the leeks still count.
       final group = byRecipe(state).recipes.single;
+      expect(
+        [for (final i in group.missing) i.ingredient.id],
+        ['cream', 'leek'],
+      );
       expect(group.toBuy, 2);
       expect(group.bought, 1);
     });

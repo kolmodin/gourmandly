@@ -357,6 +357,7 @@ final class RecipeItem extends Equatable {
   const RecipeItem({
     required this.ingredient,
     required this.amount,
+    required this.line,
     required this.isHidden,
     required this.status,
   });
@@ -365,6 +366,9 @@ final class RecipeItem extends Equatable {
 
   /// Scaled to the planned servings.
   final Amount? amount;
+
+  /// The merged line on the shopping list this ingredient is part of.
+  final LineId line;
 
   /// Hidden from the ingredients view as a staple.
   final bool isHidden;
@@ -375,7 +379,7 @@ final class RecipeItem extends Equatable {
   String get text => describeIngredient(ingredient, amount);
 
   @override
-  List<Object?> get props => [ingredient, amount, isHidden, status];
+  List<Object?> get props => [ingredient, amount, line, isHidden, status];
 }
 
 final class RecipeGroup extends Equatable {
@@ -389,10 +393,12 @@ final class RecipeGroup extends Equatable {
   final Recipe recipe;
   final IList<RecipeItem> items;
 
-  /// How many of [items] are still to be bought: neither ticked nor staples.
-  int get toBuy => items
+  /// The [items] still to be bought: neither ticked nor staples.
+  IList<RecipeItem> get missing => items
       .where((item) => !item.isHidden && item.status is! FullyChecked)
-      .length;
+      .toIList();
+
+  int get toBuy => missing.length;
 
   /// How many ingredients are bought: ticked, or ticked and cleared.
   int get bought =>
@@ -442,6 +448,7 @@ ByRecipeView byRecipe(KitchenState state) {
     return RecipeItem(
       ingredient: ingredient,
       amount: amount,
+      line: id,
       isHidden: pantry.hides(key),
       status: pantry.hides(key)
           ? const Unchecked()
