@@ -106,7 +106,10 @@ recipes/{recipeId}
 Ingredient
   id                stable, so edits and list exclusions survive
   text              "2 krm nymald svartpeppar"   as written
-  name              "svartpeppar"                shown on the list and in the export
+  name              "svartpeppar"                shown in the recipe, on the list and
+                                                 in the export
+  boughtAs          "ägg"                        optional, for "äggulor": what is
+                                                 bought, shown on the list instead
   key               "black pepper"               internal, for matching only
   quantity          { num, den }                 exact fraction
                   | { min: {num, den}, max: {num, den} }
@@ -159,6 +162,14 @@ language. It drives merging and the staples filter.
   onion`. The key never guesses a kind the recipe didn't state.
 - Only identical keys merge. Different kinds of the same thing are separate
   lines on the shopping list, and the shopper decides what to buy.
+- A recipe that uses part of something gets the key of the whole, with the
+  whole as `boughtAs`, when one part means one item: `4 äggulor` is `egg`,
+  bought as `ägg`, and `skal av 1 citron` is `lemon`, bought as `citron`. Its
+  line then merges with the whole ("4 äggulor" and "4 ägg" become "8 st
+  ägg"), and the by-recipe view shows "4 st ägg (äggulor)"; the recipe itself
+  still says "4 äggulor". Without a fair conversion (`1 dl äggvitor`), the part
+  keeps a key of its own (`egg white`). Zest and juice of one lemon count as
+  two lemons, so the list errs towards buying too much.
 - The import prompt includes the kitchen's existing keys and asks the AI to
   reuse them, **staples first**: a mismatch with a staple is the most visible
   failure (a staple that isn't filtered out), so staples are the highest
