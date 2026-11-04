@@ -87,7 +87,7 @@ void main() {
     await tester.tap(find.text('Recipes'));
 
     await until(tester, find.text('To cook'));
-    await tester.tap(find.text('Shopping list'));
+    await tester.tap(find.text('Shopping list').last);
     await until(tester, find.text('Add an item'));
     await shoot(tester, 'list');
     await tester.scrollUntilVisible(

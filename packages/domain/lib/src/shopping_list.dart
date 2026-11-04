@@ -394,6 +394,19 @@ final class RecipeGroup extends Equatable {
       .where((item) => !item.isHidden && item.status is! FullyChecked)
       .length;
 
+  /// How many ingredients are bought: ticked, or ticked and cleared.
+  int get bought =>
+      items
+          .where((item) => !item.isHidden && item.status is FullyChecked)
+          .length +
+      recipe.ingredients
+          .where(
+            (ingredient) =>
+                entry.done.contains(ingredient.id) &&
+                !entry.excluded.contains(ingredient.id),
+          )
+          .length;
+
   @override
   List<Object> get props => [entry, recipe, items];
 }

@@ -28,20 +28,16 @@ void main() {
   });
 
   group('toCook', () {
-    test('lists cooking, then shopped, then still-shopping recipes', () {
+    test('lists shopped recipes, with cooking ones first', () {
       final state = kitchen(
         planned: [
           planned('a', 'r', shoppedAt: t0),
-          planned('b', 'r', addedAt: later),
+          planned('b', 'r'),
           planned('c', 'r', shoppedAt: later, cookingStartedAt: later),
           planned('d', 'r', shoppedAt: t0.subtract(const Duration(hours: 1))),
-          planned('e', 'r', addedAt: t0),
         ],
       );
-      expect(
-        [for (final e in toCook(state)) e.id],
-        ['c', 'd', 'a', 'e', 'b'],
-      );
+      expect([for (final e in toCook(state)) e.id], ['c', 'd', 'a']);
     });
 
     test('copes with a cooking entry without a shopped time', () {

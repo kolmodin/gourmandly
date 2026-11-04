@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:domain/domain.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -8,7 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../platform/screen_awake.dart';
 import '../state/providers.dart';
-import 'plate.dart';
+import 'photo.dart';
 import 'theme.dart';
 import 'tick.dart';
 
@@ -126,13 +127,13 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
     final entry = plannedEntryFor(state, recipe.id);
     final cooking = entry?.stage == PlannedStage.cooking;
     _keepScreen(cooking);
-    final rim = rimFor(entry?.stage);
     final toBuy = ref
         .watch(byRecipeProvider)
         ?.recipes
         .where((group) => group.entry.id == entry?.id)
         .firstOrNull
         ?.toBuy;
+    final label = PhotoLabel.of(entry, toBuy: toBuy);
 
     final servings = _servings ?? entry?.servings ?? recipe.servings;
     final original = recipe.original;
@@ -179,7 +180,7 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
                   _WideHeader(
                     recipe: recipe,
                     title: title,
-                    rim: rim,
+                    label: label,
                     controls: controls,
                   ),
                   const Divider(),
@@ -210,7 +211,7 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
             : ListView(
                 padding: const EdgeInsets.only(bottom: 40),
                 children: [
-                  _Header(recipe: recipe, title: title, rim: rim),
+                  _Header(recipe: recipe, title: title, label: label),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -231,42 +232,44 @@ class _RecipeScreenState extends ConsumerState<RecipeScreen> {
   }
 }
 
-/// The plate runs off the corner of the screen, with the title beneath it.
+/// The photo runs edge to edge, square on a phone, with the title beneath it.
 class _Header extends StatelessWidget {
-  const _Header({required this.recipe, required this.title, required this.rim});
+  const _Header({
+    required this.recipe,
+    required this.title,
+    required this.label,
+  });
 
   final Recipe recipe;
   final String title;
-  final Color rim;
+  final PhotoLabel? label;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final plate = (width * 0.92).clamp(240.0, 520.0);
-      final visible = plate * 0.80;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: visible,
+            width: width,
+            height: math.min(width, 460),
             child: Stack(
-              clipBehavior: Clip.hardEdge,
+              fit: StackFit.expand,
               children: [
-                Positioned(
-                  right: -plate * 0.14,
-                  top: visible - plate,
-                  width: plate,
-                  height: plate,
-                  child: Plate(recipe: recipe, rim: rim),
+                RecipePhoto(
+                  recipe: recipe,
+                  label: label,
+                  labelAtBottom: true,
+                  radius: 0,
                 ),
                 Positioned(
-                  left: 8,
-                  top: 8,
+                  left: 12,
+                  top: 12,
                   child: IconButton.filledTonal(
                     tooltip: 'Back',
                     style: IconButton.styleFrom(
-                      backgroundColor: Palette.plate,
+                      backgroundColor: Palette.enamel,
                       foregroundColor: Palette.ink,
                     ),
                     onPressed: () =>
@@ -278,7 +281,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
             child: Text(title, style: Fonts.serif(32)),
           ),
         ],
@@ -288,62 +291,50 @@ class _Header extends StatelessWidget {
 }
 
 /// On a wide screen the header stays low, so that the whole ingredient list
-/// fits beside the steps while cooking. The plate still runs off the corner.
+/// fits beside the steps while cooking: a square photo beside the title.
 class _WideHeader extends StatelessWidget {
   const _WideHeader({
     required this.recipe,
     required this.title,
-    required this.rim,
+    required this.label,
     required this.controls,
   });
 
   final Recipe recipe;
   final String title;
-  final Color rim;
+  final PhotoLabel? label;
   final Widget controls;
 
   @override
-  Widget build(BuildContext context) {
-    const plate = 290.0;
-    return ClipRect(
-      child: Stack(
-        children: [
-          Positioned(
-            right: -30,
-            top: -116,
-            width: plate,
-            height: plate,
-            child: Plate(recipe: recipe, rim: rim),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(32, 16, 40, 20),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IconButton(
+          tooltip: 'Back',
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        const SizedBox(width: 8),
+        SizedBox.square(
+          dimension: 168,
+          child: RecipePhoto(recipe: recipe, label: label, labelAtBottom: true),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Fonts.serif(38)),
+              const SizedBox(height: 12),
+              controls,
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(32, 16, 280, 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  tooltip: 'Back',
-                  onPressed: () =>
-                      context.canPop() ? context.pop() : context.go('/'),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: Fonts.serif(38)),
-                      const SizedBox(height: 12),
-                      controls,
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
 
 class _Controls extends StatelessWidget {
@@ -432,28 +423,43 @@ class _Controls extends StatelessWidget {
         ],
         if (onList) ...[
           const SizedBox(height: 16),
-          Text(switch (toBuy) {
-            null => 'Still on the shopping list.',
-            0 => 'Still on the shopping list. Everything is ticked.',
-            1 => 'Still on the shopping list, with 1 ingredient to buy.',
-            final n =>
-              'Still on the shopping list, with $n ingredients '
-                  'to buy.',
-          }, style: Fonts.sans(15, color: Palette.pewter)),
-          Wrap(
-            spacing: 20,
-            children: [
-              TextButton(
-                style: flushTextButton,
-                onPressed: onMissing,
-                child: const Text('See what\'s missing'),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Palette.cobaltTint,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(switch (toBuy) {
+                    null => 'Still on the shopping list.',
+                    0 => 'Still on the shopping list. Everything is ticked.',
+                    1 =>
+                      'Still on the shopping list, with 1 ingredient to buy.',
+                    final n =>
+                      'Still on the shopping list, with $n ingredients '
+                          'to buy.',
+                  }, style: Fonts.sans(15)),
+                  Wrap(
+                    spacing: 20,
+                    children: [
+                      TextButton(
+                        style: flushTextButton,
+                        onPressed: onMissing,
+                        child: const Text('See what\'s missing'),
+                      ),
+                      TextButton(
+                        style: flushTextButton,
+                        onPressed: onBought,
+                        child: const Text('Already bought'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              TextButton(
-                style: flushTextButton,
-                onPressed: onBought,
-                child: const Text('Already bought'),
-              ),
-            ],
+            ),
           ),
         ],
         const SizedBox(height: 16),

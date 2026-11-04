@@ -2,22 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:domain/domain.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/providers.dart';
-import 'plate.dart';
 import 'theme.dart';
-
-const _emptyPlate = Recipe(
-  id: '',
-  title: '',
-  servings: 0,
-  ingredients: IListConst([]),
-);
 
 class _Page extends StatelessWidget {
   const _Page({required this.children});
@@ -26,33 +16,17 @@ class _Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: LayoutBuilder(
-      builder: (context, constraints) {
-        final plate = (constraints.maxWidth * 0.9).clamp(240.0, 460.0);
-        return Stack(
-          children: [
-            Positioned(
-              right: -plate * 0.3,
-              top: -plate * 0.3,
-              width: plate,
-              height: plate,
-              child: const Plate(recipe: _emptyPlate),
-            ),
-            SafeArea(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 440),
-                  child: ListView(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.all(24),
-                    children: children,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(24),
+            children: children,
+          ),
+        ),
+      ),
     ),
   );
 }

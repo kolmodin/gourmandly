@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/providers.dart';
-import 'plate.dart';
+import 'photo.dart';
 import 'theme.dart';
 import 'tick.dart';
 
@@ -397,9 +397,9 @@ class _ByRecipe extends ConsumerWidget {
             key: group.entry.id == focusEntryId ? focusKey : null,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: 52,
-                child: Plate(recipe: group.recipe, rim: Palette.cobaltPale),
+              SizedBox.square(
+                dimension: 56,
+                child: RecipePhoto(recipe: group.recipe),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -408,7 +408,8 @@ class _ByRecipe extends ConsumerWidget {
                   children: [
                     Text(group.recipe.title, style: Fonts.serif(18)),
                     Text(
-                      '${group.entry.servings} servings',
+                      '${group.entry.servings} servings, '
+                      '${PhotoLabel.toBuy(group.toBuy).text}',
                       style: Fonts.sans(13, color: Palette.pewter),
                     ),
                     Wrap(
@@ -434,7 +435,7 @@ class _ByRecipe extends ConsumerWidget {
           ),
           for (final item in group.items)
             Padding(
-              padding: const EdgeInsets.only(left: 64, top: 3, bottom: 3),
+              padding: const EdgeInsets.only(left: 68, top: 3, bottom: 3),
               child: Row(
                 children: [
                   Expanded(
@@ -486,16 +487,28 @@ class _ByRecipe extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    SizedBox(
-                      width: 40,
-                      child: Plate(recipe: recipe, rim: rimFor(entry.stage)),
+                    SizedBox.square(
+                      dimension: 40,
+                      child: RecipePhoto(recipe: recipe, radius: 5),
                     ),
                     const SizedBox(width: 12),
                     Expanded(child: Text(recipe.title, style: Fonts.sans(16))),
                     if (entry.stage == PlannedStage.cooking)
-                      Text(
-                        'Cooking now',
-                        style: Fonts.sans(13, color: Palette.saffronInk),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Palette.saffron,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          child: Text(
+                            'Cooking now',
+                            style: Fonts.sans(13, weight: 600),
+                          ),
+                        ),
                       ),
                   ],
                 ),

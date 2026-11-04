@@ -30,8 +30,28 @@ void main() {
         tester,
         kitchens: FakeKitchens(kitchenWith(planned: [entryFor('soup')])),
       );
-      expect(find.text('To cook'), findsOneWidget);
-      expect(find.text('2 to buy'), findsOneWidget);
+      expect(find.text('To cook'), findsNothing);
+      expect(find.text('Still shopping'), findsOneWidget);
+      expect(find.text('2 of 2 ingredients to buy'), findsOneWidget);
+    });
+
+    testWidgets('counts ticked ingredients as bought', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(
+          kitchenWith(
+            planned: [entryFor('soup')],
+            checks: [
+              Check(
+                line: const LineId('onion', BaseMeasure.count),
+                quantity: Fraction(4),
+                at: now,
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(find.text('1 of 2 ingredients to buy'), findsOneWidget);
     });
 
     testWidgets('says when everything for a recipe is ticked', (tester) async {
@@ -56,6 +76,7 @@ void main() {
     testWidgets('leaves out "To cook" when nothing is planned', (tester) async {
       await pumpApp(tester, kitchens: FakeKitchens(kitchenWith()));
       expect(find.text('To cook'), findsNothing);
+      expect(find.text('Still shopping'), findsNothing);
       expect(find.text('Löksoppa'), findsOneWidget);
       expect(find.text('Gryta'), findsOneWidget);
     });

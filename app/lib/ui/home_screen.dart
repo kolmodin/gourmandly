@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../data/repositories.dart';
 import '../state/providers.dart';
-import 'plate.dart';
+import 'photo.dart';
 import 'theme.dart';
 
 const _categoryNames = {
@@ -71,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
     final gutter = wide ? 40.0 : 20.0;
     final searching = _query.isNotEmpty || _filterCount > 0;
+    final stillShopping = byRecipe(data.state).recipes;
 
     return SafeArea(
       child: CustomScrollView(
@@ -82,6 +83,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (!searching && toCook(data.state).isNotEmpty)
             SliverToBoxAdapter(
               child: _ToCook(data: data, gutter: gutter, wide: wide),
+            ),
+          if (!searching && stillShopping.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _StillShopping(groups: stillShopping, gutter: gutter),
             ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(gutter, 28, gutter, 16),
@@ -129,23 +134,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
               sliver: SliverLayoutBuilder(
                 builder: (context, constraints) {
-                  const spacing = 24.0;
+                  const spacing = 16.0;
                   final width = constraints.crossAxisExtent;
                   final columns = math.max(
                     2,
                     (width + spacing) ~/ (190 + spacing),
                   );
-                  final plate = (width - spacing * (columns - 1)) / columns;
+                  final tile = (width - spacing * (columns - 1)) / columns;
                   return SliverGrid.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
-                      mainAxisSpacing: 24,
+                      mainAxisSpacing: 22,
                       crossAxisSpacing: spacing,
-                      mainAxisExtent: plate + 80,
+                      mainAxisExtent: tile + 72,
                     ),
                     itemCount: found.length,
                     itemBuilder: (context, index) =>
-                        _RecipeOnTable(recipe: found[index]),
+                        _RecipeTile(recipe: found[index]),
                   );
                 },
               ),
@@ -196,54 +201,45 @@ class _ToCook extends StatelessWidget {
         if (data.state.recipes[entry.recipeId] case final recipe?)
           (entry, recipe),
     ];
-    final groups = {
-      for (final group in byRecipe(data.state).recipes) group.entry.id: group,
-    };
-    final plate = wide ? 210.0 : 164.0;
+    final tile = wide ? 190.0 : 150.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 14),
+          padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 12),
           child: Text('To cook', style: Fonts.serif(22)),
         ),
         SizedBox(
-          height: plate + 74,
+          height: tile + 50,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: gutter),
             itemCount: entries.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 20),
+            separatorBuilder: (context, index) => const SizedBox(width: 14),
             itemBuilder: (context, index) {
               final (entry, recipe) = entries[index];
-              final cooking = entry.stage == PlannedStage.cooking;
-              final toBuy = groups[entry.id]?.toBuy;
               return SizedBox(
-                width: plate,
+                width: tile,
                 child: InkWell(
                   onTap: () => context.push('/recipes/${recipe.id}'),
-                  customBorder: const StadiumBorder(),
+                  borderRadius: BorderRadius.circular(6),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Plate(recipe: recipe, rim: rimFor(entry.stage)),
-                      const SizedBox(height: 10),
+                      SizedBox.square(
+                        dimension: tile,
+                        child: RecipePhoto(
+                          recipe: recipe,
+                          label: PhotoLabel.of(entry),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         recipe.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Fonts.sans(15, weight: 600, height: 1.2),
                       ),
-                      if (cooking)
-                        Text(
-                          'Cooking now',
-                          style: Fonts.sans(13, color: Palette.saffronInk),
-                        )
-                      else if (toBuy != null)
-                        Text(
-                          toBuyText(toBuy),
-                          style: Fonts.sans(13, color: Palette.pewter),
-                        ),
                     ],
                   ),
                 ),
@@ -256,11 +252,81 @@ class _ToCook extends StatelessWidget {
   }
 }
 
-/// What is left to buy for a recipe still on the shopping list.
-String toBuyText(int toBuy) => toBuy == 0 ? 'All ticked' : '$toBuy to buy';
+/// Planned recipes still on the shopping list, with how much is left to buy.
+class _StillShopping extends StatelessWidget {
+  const _StillShopping({required this.groups, required this.gutter});
 
-class _RecipeOnTable extends StatelessWidget {
-  const _RecipeOnTable({required this.recipe});
+  final IList<RecipeGroup> groups;
+  final double gutter;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(horizontal: gutter),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 22),
+        Row(
+          children: [
+            Expanded(child: Text('Still shopping', style: Fonts.serif(22))),
+            TextButton(
+              style: flushTextButton,
+              onPressed: () => context.go('/list'),
+              child: const Text('Shopping list'),
+            ),
+          ],
+        ),
+        for (final group in groups)
+          InkWell(
+            onTap: () => context.push('/recipes/${group.recipe.id}'),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  SizedBox.square(
+                    dimension: 56,
+                    child: RecipePhoto(recipe: group.recipe),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group.recipe.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Fonts.sans(16, weight: 600),
+                        ),
+                        Text(
+                          stillToBuy(group),
+                          style: Fonts.sans(13, color: Palette.pewter),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+/// How much is left to buy for a recipe still on the shopping list:
+/// "3 of 4 ingredients to buy".
+String stillToBuy(RecipeGroup group) {
+  final all = group.toBuy + group.bought;
+  return group.toBuy == 0
+      ? 'All ticked'
+      : '${group.toBuy} of $all ${all == 1 ? 'ingredient' : 'ingredients'} '
+            'to buy';
+}
+
+class _RecipeTile extends StatelessWidget {
+  const _RecipeTile({required this.recipe});
 
   final Recipe recipe;
 
@@ -269,12 +335,12 @@ class _RecipeOnTable extends StatelessWidget {
     final minutes = recipe.totalTime;
     return InkWell(
       onTap: () => context.push('/recipes/${recipe.id}'),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Plate(recipe: recipe),
-          const SizedBox(height: 10),
+          AspectRatio(aspectRatio: 1, child: RecipePhoto(recipe: recipe)),
+          const SizedBox(height: 8),
           Text(
             recipe.title,
             maxLines: 2,

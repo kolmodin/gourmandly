@@ -12,16 +12,14 @@ const cookingLifetime = Duration(hours: 24);
 DateTime _shoppedTime(PlannedRecipe entry) =>
     entry.shoppedAt ?? entry.cookingStartedAt ?? entry.addedAt;
 
-/// The "To cook" list: every planned recipe, those being cooked first, then
-/// shopped ones, then those still on the shopping list, each oldest first.
+/// The "To cook" list: recipes being cooked first, then shopped ones, oldest
+/// first. Those still on the shopping list are in [byRecipe].
 IList<PlannedRecipe> toCook(KitchenState state) {
-  int rank(PlannedRecipe entry) => switch (entry.stage) {
-    PlannedStage.cooking => 0,
-    PlannedStage.toCook => 1,
-    PlannedStage.onList => 2,
-  };
+  int rank(PlannedRecipe entry) => entry.stage == PlannedStage.cooking ? 0 : 1;
 
-  return (state.planned.toList()
+  return (state.planned
+          .where((entry) => entry.stage != PlannedStage.onList)
+          .toList()
         ..sort((a, b) {
           final byRank = rank(a).compareTo(rank(b));
           if (byRank != 0) return byRank;

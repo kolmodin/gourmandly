@@ -795,7 +795,27 @@ void main() {
         staples: {'salt'},
       );
       // Salt is a staple and the onion is ticked; half the leeks still count.
-      expect(byRecipe(state).recipes.single.toBuy, 2);
+      final group = byRecipe(state).recipes.single;
+      expect(group.toBuy, 2);
+      expect(group.bought, 1);
+    });
+
+    test('counts cleared ingredients as bought', () {
+      final state = kitchen(
+        recipes: [
+          recipe('r', [
+            amountOfIngredient('onion', 1, st),
+            amountOfIngredient('cream', 1, dl),
+            amountOfIngredient('leek', 1, st),
+          ]),
+        ],
+        planned: [
+          planned('e1', 'r', done: ['onion'], excluded: ['cream']),
+        ],
+      );
+      final group = byRecipe(state).recipes.single;
+      expect(group.toBuy, 1);
+      expect(group.bought, 1);
     });
 
     test('an item without a quantity is just its name', () {
