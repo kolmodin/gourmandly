@@ -71,6 +71,15 @@ void main() {
       expect(search(query: 'chicken breast'), ['pad-thai']);
     });
 
+    test('searches what is bought for an ingredient', () {
+      final lemony = recipe('fish', [
+        ingredient('lemon', name: 'skal', boughtAs: 'citron'),
+      ]);
+      expect(ids(searchRecipes([lemony].lock, tags, query: 'citron')), [
+        'fish',
+      ]);
+    });
+
     test('searches tag names', () {
       expect(search(query: 'vegetarian'), ['soup']);
       expect(search(query: 'quick'), ['pad-thai', 'soup']);

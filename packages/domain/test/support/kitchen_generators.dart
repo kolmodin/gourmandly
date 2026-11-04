@@ -54,12 +54,14 @@ extension KitchenGenerators on Any {
       servings: servings,
       ingredients: [
         for (final (index, (key, quantity, unit)) in specs.indexed)
+          // Every third ingredient is a part of what is bought: yolks of eggs.
           Ingredient(
             id: '$id-$index',
-            name: key,
+            name: index % 3 == 2 ? 'part of $key' : key,
             key: key,
             quantity: quantity,
             unit: unit,
+            boughtAs: index % 3 == 2 ? key : null,
           ),
       ].lock,
     ),

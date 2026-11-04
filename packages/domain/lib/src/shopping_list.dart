@@ -175,10 +175,22 @@ String describeIngredient(Ingredient ingredient, Amount? amount) {
       : '${formatAmount(amount, [?unit])} ${ingredient.name}';
 }
 
+/// An ingredient as the shopping list names it: what is bought, with what the
+/// recipe uses in brackets when that differs: `4 st ägg (äggulor)`.
+String shoppingText(Ingredient ingredient, Amount? amount) {
+  final bought = ingredient.boughtAs;
+  if (bought == null) return describeIngredient(ingredient, amount);
+  final unit = ingredient.unit;
+  final what = '$bought (${ingredient.name})';
+  return amount == null ? what : '${formatAmount(amount, [?unit])} $what';
+}
+
 /// The key an ingredient merges under.
 String lineKey(Ingredient ingredient) {
   final key = normalizeKey(ingredient.key);
-  return key.isEmpty ? normalizeKey(ingredient.name) : key;
+  return key.isEmpty
+      ? normalizeKey(ingredient.boughtAs ?? ingredient.name)
+      : key;
 }
 
 final class _Contribution {
@@ -243,7 +255,7 @@ _Contribution _fromIngredient(
   );
   return _Contribution(
     id: LineId(key, amount?.measure ?? BaseMeasure.none),
-    name: ingredient.name,
+    name: ingredient.boughtAs ?? ingredient.name,
     amount: amount,
     unit: ingredient.unit,
     source: RecipeSource(
@@ -376,7 +388,7 @@ final class RecipeItem extends Equatable {
   /// The status of the merged line this ingredient is part of.
   final LineStatus status;
 
-  String get text => describeIngredient(ingredient, amount);
+  String get text => shoppingText(ingredient, amount);
 
   @override
   List<Object?> get props => [ingredient, amount, line, isHidden, status];

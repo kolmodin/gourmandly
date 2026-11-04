@@ -72,6 +72,7 @@ Ingredient decodeIngredient(Json data, int position) => Ingredient(
   text: _string(data['text']) ?? '',
   note: _string(data['note']),
   group: _string(data['group']),
+  boughtAs: _string(data['boughtAs']),
 );
 
 IList<Ingredient> _ingredients(Object? value) => [

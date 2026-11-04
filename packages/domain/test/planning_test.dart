@@ -510,5 +510,22 @@ void main() {
         'salt',
       );
     });
+
+    test('names what the recipe uses, not what is bought', () {
+      expect(
+        cookingText(
+          amountOfIngredient(
+            'egg',
+            4,
+            StandardUnit.st,
+            name: 'äggulor',
+            boughtAs: 'ägg',
+          ),
+          from: 4,
+          to: 2,
+        ),
+        '2 st äggulor',
+      );
+    });
   });
 }

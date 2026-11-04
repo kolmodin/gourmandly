@@ -27,13 +27,23 @@ interface Ingredient {
   quantity: { num: number; den: number } | null;
   unit: string | null;
   group?: string;
+  boughtAs?: string;
 }
 
-/** `[amount, unit, name, key]`, where the amount is `n`, `[n, d]` or null. */
-type Row = [number | [number, number] | null, string | null, string, string];
+/**
+ * `[amount, unit, name, key, boughtAs?]`, where the amount is `n`, `[n, d]` or
+ * null.
+ */
+type Row = [
+  number | [number, number] | null,
+  string | null,
+  string,
+  string,
+  string?,
+];
 
 function ingredients(rows: Row[], group?: string): Ingredient[] {
-  return rows.map(([amount, unit, name, key], index) => {
+  return rows.map(([amount, unit, name, key, boughtAs], index) => {
     const [num, den] = Array.isArray(amount) ? amount : [amount, 1];
     const shown = Array.isArray(amount) ? `${amount[0]}/${amount[1]}` : amount;
     return {
@@ -44,6 +54,7 @@ function ingredients(rows: Row[], group?: string): Ingredient[] {
       quantity: num === null ? null : { num, den: den as number },
       unit,
       ...(group === undefined ? {} : { group }),
+      ...(boughtAs === undefined ? {} : { boughtAs }),
     };
   });
 }
@@ -69,7 +80,7 @@ const recipes: Recipe[] = [
     ingredients: ingredients([
       [400, "g", "spaghetti", "spaghetti"],
       [150, "g", "guanciale eller pancetta", "pancetta"],
-      [4, "st", "äggulor", "egg"],
+      [4, "st", "äggulor", "egg", "ägg"],
       [1, "dl", "riven pecorino", "pecorino"],
       [null, null, "svartpeppar", "black pepper"],
       [null, null, "salt", "salt"],

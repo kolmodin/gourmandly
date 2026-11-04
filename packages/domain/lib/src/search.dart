@@ -81,6 +81,7 @@ IList<Recipe> searchRecipes(
       for (final ingredient in recipe.ingredients) ...[
         ingredient.name,
         ingredient.key,
+        ?ingredient.boughtAs,
       ],
       for (final id in recipe.tagIds) ?byId[id]?.name,
     ].map(foldText).toList();

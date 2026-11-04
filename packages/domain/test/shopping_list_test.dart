@@ -91,6 +91,35 @@ void main() {
       expect(list.lines.single.sources, hasLength(2));
     });
 
+    test('a part merges into what is bought for it', () {
+      final state = kitchen(
+        recipes: [
+          recipe('carbonara', [
+            amountOfIngredient('egg', 4, st, name: 'äggulor', boughtAs: 'ägg'),
+          ]),
+          recipe('shakshuka', [amountOfIngredient('egg', 4, st, name: 'ägg')]),
+        ],
+        planned: [planned('e1', 'carbonara'), planned('e2', 'shakshuka')],
+      );
+      expect(texts(shoppingList(state).lines), ['8 st ägg']);
+      expect(
+        [for (final g in byRecipe(state).recipes) g.items.single.text],
+        ['4 st ägg (äggulor)', '4 st ägg'],
+      );
+    });
+
+    test('a part without a quantity is named by what is bought', () {
+      final state = kitchen(
+        recipes: [
+          recipe('r', [ingredient('', name: 'skal', boughtAs: 'citron')]),
+        ],
+        planned: [planned('e1', 'r')],
+      );
+      expect(texts(shoppingList(state).lines), ['citron']);
+      expect(shoppingList(state).lines.single.id.key, 'citron');
+      expect(byRecipe(state).recipes.single.items.single.text, 'citron (skal)');
+    });
+
     test('different units of one measure merge', () {
       final list = shoppingList(
         kitchen(

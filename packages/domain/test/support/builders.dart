@@ -12,6 +12,7 @@ Ingredient ingredient(
   String text = '',
   String? note,
   String? group,
+  String? boughtAs,
 }) => Ingredient(
   id: id ?? key,
   name: name ?? key,
@@ -21,6 +22,7 @@ Ingredient ingredient(
   text: text,
   note: note,
   group: group,
+  boughtAs: boughtAs,
 );
 
 Ingredient amountOfIngredient(
@@ -28,7 +30,14 @@ Ingredient amountOfIngredient(
   int value,
   Unit unit, {
   String? name,
-}) => ingredient(key, name: name, quantity: Exact(Fraction(value)), unit: unit);
+  String? boughtAs,
+}) => ingredient(
+  key,
+  name: name,
+  boughtAs: boughtAs,
+  quantity: Exact(Fraction(value)),
+  unit: unit,
+);
 
 Recipe recipe(
   String id,

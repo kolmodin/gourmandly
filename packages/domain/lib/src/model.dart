@@ -16,13 +16,19 @@ final class Ingredient extends Equatable {
     this.text = '',
     this.note,
     this.group,
+    this.boughtAs,
   });
 
   /// Stable across edits, so exclusions and ticks survive them.
   final String id;
 
-  /// Shown on the shopping list and in the export: `svartpeppar`.
+  /// What the recipe uses, shown in it and on the shopping list: `svartpeppar`.
   final String name;
+
+  /// What is bought for it, when the recipe uses only part of that, one for
+  /// one: `ägg` for `äggulor`. Shown on the shopping list instead of [name],
+  /// so that four yolks and four eggs make "8 st ägg".
+  final String? boughtAs;
 
   /// What you buy, in English, for matching only: `black pepper`.
   final String key;
@@ -40,7 +46,17 @@ final class Ingredient extends Equatable {
   final String? group;
 
   @override
-  List<Object?> get props => [id, name, key, quantity, unit, text, note, group];
+  List<Object?> get props => [
+    id,
+    name,
+    key,
+    quantity,
+    unit,
+    text,
+    note,
+    group,
+    boughtAs,
+  ];
 }
 
 enum ImageOrigin { page, ai }

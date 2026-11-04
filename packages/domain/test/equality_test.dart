@@ -53,6 +53,7 @@ void main() {
       ingredient('a', id: 'i', name: 'n', text: 't'),
       ingredient('a', id: 'i', name: 'n', note: 'x'),
       ingredient('a', id: 'i', name: 'n', group: 'x'),
+      ingredient('a', id: 'i', name: 'n', boughtAs: 'x'),
     ]);
     hasValueEquality('Recipe', () => recipe('r', [], title: 't', servings: 4), [
       recipe('x', [], title: 't', servings: 4),

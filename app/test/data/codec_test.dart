@@ -105,6 +105,7 @@ void main() {
             'unit': 'dl',
             'note': 'gärna ekologisk',
             'group': 'Sås',
+            'boughtAs': 'mjölk',
           },
         ],
       });
@@ -128,6 +129,7 @@ void main() {
       expect(ingredient.key, 'cream');
       expect(ingredient.quantity, Exact(Fraction(2)));
       expect(ingredient.unit, StandardUnit.dl);
+      expect(ingredient.boughtAs, 'mjölk');
       expect(ingredient.note, 'gärna ekologisk');
       expect(ingredient.group, 'Sås');
     });
