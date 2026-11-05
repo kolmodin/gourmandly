@@ -17,12 +17,15 @@ development shell with `nix develop`, or let direnv load it.
 |---|---|
 | `nix run` | Firebase emulators, plus the web app with hot reload at <http://localhost:8000>. Emulator UI at <http://127.0.0.1:4000>. |
 | `nix run .#emulators` | The Firebase emulators only. |
-| `nix run .#test` | All test suites, including integration tests in Chrome. |
+| `nix run .#test` | All test suites, including integration tests in Chrome. Name suites to run only those: `nix run .#test -- domain app`. |
 | `nix run .#screenshots` | Screenshots of the seeded app at phone and tablet sizes, in `app/build/screenshots/`. |
 
 Everything runs against the Firebase Emulator Suite with the `demo-gourmandly`
 project, so no Firebase account is needed. `nix run` fills it with a kitchen of
 seed recipes; use "Sign in as Anna (local)" to get in.
+
+GitHub Actions runs the same suites on every push to `main` and every pull
+request ([decision 008](docs/decisions/008-ci.md)).
 
 ## Layout
 
