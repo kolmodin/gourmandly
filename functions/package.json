@@ -5,30 +5,25 @@
   "type": "module",
   "main": "lib/index.js",
   "engines": {
-    "node": "22"
+    "node": "24"
   },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "test": "node --test --experimental-strip-types 'src/**/*.test.ts'",
-    "test:rules": "node --test --experimental-strip-types test/rules.test.ts",
-    "test:integration": "node --test --test-force-exit --test-concurrency=1 --experimental-strip-types test/kitchens.test.ts",
+    "test": "node --test 'src/**/*.test.ts'",
+    "test:rules": "node --test test/rules.test.ts",
+    "test:integration": "node --test --test-force-exit --test-concurrency=1 test/kitchens.test.ts",
     "typecheck": "tsc -p tsconfig.test.json",
-    "seed": "node --experimental-strip-types seed/seed.ts"
+    "seed": "node seed/seed.ts"
   },
   "dependencies": {
     "firebase-admin": "^14.5.0",
     "firebase-functions": "^7.4.0"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.2",
-    "@types/node": "^22.20.5",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@types/node": "^24.19.2",
     "firebase": "^13.1.0",
     "typescript": "^7.0.2"
-  },
-  "overrides": {
-    "@firebase/rules-unit-testing": {
-      "firebase": "$firebase"
-    }
   }
 }

@@ -66,7 +66,7 @@
             };
           };
           node = {
-            packages = [ pkgs.nodejs_22 ];
+            packages = [ pkgs.nodejs_24 ];
           };
           firebase = {
             packages = java.packages ++ [ pkgs.firebase-tools ];
