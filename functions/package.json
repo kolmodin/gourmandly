@@ -25,5 +25,10 @@
     "@types/node": "^22.20.5",
     "firebase": "^13.1.0",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "@firebase/rules-unit-testing": {
+      "firebase": "$firebase"
+    }
   }
 }
