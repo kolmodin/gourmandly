@@ -623,6 +623,28 @@ void main() {
       expect(kitchens.state.planned.single.done, contains('onion'));
     });
 
+    testWidgets('runs again every hour while the app is open', (tester) async {
+      var time = now;
+      final kitchens = FakeKitchens(
+        kitchenWith(
+          planned: [entryFor('soup')],
+          checks: [
+            Check(
+              line: const LineId('onion', BaseMeasure.count),
+              at: now.subtract(const Duration(hours: 23)),
+              quantity: Fraction(4),
+            ),
+          ],
+        ),
+      );
+      await pumpApp(tester, kitchens: kitchens, clock: () => time);
+      expect(kitchens.state.checks, hasLength(1));
+      time = now.add(const Duration(hours: 2));
+      await tester.pump(const Duration(hours: 1));
+      await settle(tester);
+      expect(kitchens.state.checks, isEmpty);
+    });
+
     testWidgets('waits while the data comes from the cache', (tester) async {
       final kitchens = FakeKitchens(state, isSynced: false);
       await pumpApp(tester, kitchens: kitchens);

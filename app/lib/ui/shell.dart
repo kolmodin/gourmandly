@@ -23,6 +23,29 @@ class Shell extends ConsumerStatefulWidget {
 class _ShellState extends ConsumerState<Shell> {
   String? _tidied;
 
+  /// Housekeeping runs when a kitchen opens and then every hour, for a
+  /// tablet that stays open in the kitchen for days.
+  late final Timer _hourly;
+
+  @override
+  void initState() {
+    super.initState();
+    _hourly = Timer.periodic(const Duration(hours: 1), (_) => _tidy());
+  }
+
+  @override
+  void dispose() {
+    _hourly.cancel();
+    super.dispose();
+  }
+
+  void _tidy() {
+    final data = ref.read(kitchenDataProvider).value;
+    if (data == null || !data.isSynced) return;
+    _tidied = data.kitchen.id;
+    ref.read(kitchenActionsProvider).houseKeeping(data.state);
+  }
+
   void _watchKitchen() {
     ref.listen(kitchenDataProvider, (previous, next) {
       final data = next.value;
@@ -30,8 +53,7 @@ class _ShellState extends ConsumerState<Shell> {
           data != null &&
           data.isSynced &&
           _tidied != data.kitchen.id) {
-        _tidied = data.kitchen.id;
-        ref.read(kitchenActionsProvider).houseKeeping(data.state);
+        _tidy();
       }
       // A kitchen that was deleted while this user was still listed on it.
       if (next.error is KitchenGone) {

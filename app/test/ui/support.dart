@@ -195,7 +195,8 @@ final class FakeScreen implements ScreenAwake {
   Future<void> release() async => isOn = false;
 }
 
-/// Runs the app on a phone-sized screen, starting at [location].
+/// Runs the app on a phone-sized screen, starting at [location]. The time is
+/// [at], or what [clock] says, for a test in which time passes.
 Future<void> pumpApp(
   WidgetTester tester, {
   required FakeKitchens kitchens,
@@ -205,6 +206,7 @@ Future<void> pumpApp(
   String location = '/',
   Size size = const Size(412, 915),
   DateTime? at,
+  DateTime Function()? clock,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -215,7 +217,7 @@ Future<void> pumpApp(
       accountRepositoryProvider.overrideWithValue(account ?? FakeAccount()),
       localSettingsProvider.overrideWithValue(settings ?? FakeSettings()),
       screenAwakeProvider.overrideWithValue(screen ?? FakeScreen()),
-      clockProvider.overrideWithValue(() => at ?? now),
+      clockProvider.overrideWithValue(clock ?? () => at ?? now),
     ],
   );
   addTearDown(container.dispose);

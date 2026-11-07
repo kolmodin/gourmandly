@@ -384,7 +384,8 @@ lines are left out.
 - An override is deleted with its line only if it brought a staple back and no
   other line of that key is left.
 - **Automatic clearing:** lines checked more than 24 hours ago are cleared the
-  same way by whichever client opens the list first. This covers the usual
+  same way by whichever client opens the kitchen first, or, on a device left
+  open, within the hour. This covers the usual
   case (shopping is done, nobody pressed the button) while keeping a whole
   shopping trip visible for unchecking mistakes. Two clients clearing at once is
   harmless: deleting twice, adding to a set twice and setting the same time
