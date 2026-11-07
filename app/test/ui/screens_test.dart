@@ -697,6 +697,22 @@ void main() {
       expect(account.signedInWithGoogle, isTrue);
     });
 
+    testWidgets('an invite link asks before joining', (tester) async {
+      final account = FakeAccount();
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith()),
+        account: account,
+        location: '/join/abc',
+      );
+      expect(find.text('You\'re invited to a kitchen'), findsOneWidget);
+      expect(account.accepted, isEmpty);
+      await tester.tap(find.text('Join kitchen'));
+      await settle(tester);
+      expect(account.accepted, ['abc']);
+      expect(find.text('Hemma'), findsOneWidget);
+    });
+
     testWidgets('a new user creates a kitchen explicitly', (tester) async {
       final account = FakeAccount(kitchens: []);
       await pumpApp(

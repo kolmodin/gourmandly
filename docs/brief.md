@@ -129,8 +129,10 @@ cooking and grocery shopping. Small scale; it may never have users beyond that.
   accidental kitchen.
 - A user can belong to several kitchens and switches between them; the
   current one is remembered per device.
-- Members can invite others with a link that works for a week. All members can
-  read and write the kitchen's recipe store and shopping list.
+- Members can invite others with a link that works for a week. Opening the
+  link asks before joining, as joining shows the user's name to the members.
+  All members can read and write the kitchen's recipe store and shopping
+  list.
 - Each kitchen has one **owner**, initially its creator. Other members can
   leave at any time. The owner can hand ownership to another member; when the
   owner leaves without doing so, the kitchen and all its data are deleted

@@ -131,6 +131,7 @@ final class FakeAccount implements AccountRepository {
   final IList<String> _kitchens;
   final left = <String>[];
   final created = <String>[];
+  final accepted = <String>[];
   var signedInWithGoogle = false;
 
   @override
@@ -159,7 +160,10 @@ final class FakeAccount implements AccountRepository {
   Future<String> createInvite(String kitchenId) async => 'token';
 
   @override
-  Future<String> acceptInvite(String token) async => kitchenId;
+  Future<String> acceptInvite(String token) async {
+    accepted.add(token);
+    return kitchenId;
+  }
 
   @override
   Future<void> leaveKitchen(String kitchenId) async => left.add(kitchenId);

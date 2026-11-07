@@ -177,36 +177,59 @@ class JoinScreen extends ConsumerStatefulWidget {
 
 class _JoinScreenState extends ConsumerState<JoinScreen> {
   String? _problem;
-  bool _accepting = false;
+  bool _busy = false;
 
   Future<void> _accept() async {
-    _accepting = true;
+    setState(() {
+      _busy = true;
+      _problem = null;
+    });
     try {
       final account = ref.read(accountRepositoryProvider);
       final id = await account.acceptInvite(widget.token);
       ref.read(chosenKitchenProvider.notifier).choose(id);
       if (mounted) context.go('/');
     } on FirebaseFunctionsException catch (error) {
-      if (mounted) setState(() => _problem = error.message);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _problem = error.message;
+        });
+      }
     }
   }
 
+  /// Joining asks first: following a link alone shouldn't share someone's
+  /// name with a kitchen.
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider).value;
-    if (user != null && !_accepting) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_accept()));
-    }
     return _Page(
       children: [
         Text('You\'re invited to a kitchen', style: Fonts.serif(36)),
         const SizedBox(height: 24),
-        if (_problem case final problem?)
-          Text(problem, style: Fonts.sans(17, color: Palette.saffronInk))
-        else if (user == null)
+        if (user == null)
           const _SignIn()
-        else
-          const Center(child: CircularProgressIndicator()),
+        else ...[
+          Text(
+            'Its members will see your name, and you\'ll share their recipes '
+            'and shopping list.',
+            style: Fonts.sans(17),
+          ),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: _busy ? null : _accept,
+            child: const Text('Join kitchen'),
+          ),
+        ],
+        if (_problem case final problem?)
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Text(
+              problem,
+              style: Fonts.sans(17, color: Palette.saffronInk),
+            ),
+          ),
       ],
     );
   }
