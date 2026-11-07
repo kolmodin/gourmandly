@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 const _folds = {
   'à': 'a',
   'á': 'a',
@@ -51,7 +53,28 @@ String foldText(String text) {
 String normalizeKey(String key) =>
     key.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
-/// [key] as a document ID: Firestore IDs can't contain a slash and can't be
-/// `.` or `..`.
-String keySlug(String key) =>
-    normalizeKey(key).replaceAll(RegExp(r'[\s/.]+'), '-');
+final _plain = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+/// [key] as a document ID, readable and without losing anything: letters and
+/// digits stay, spaces become `-`, and everything else is percent-encoded, so
+/// `half and half` and `half-and-half` get IDs of their own. Firestore IDs
+/// can't contain a slash, be `.` or `..`, or look like `__id__`. The Functions
+/// have the same function, in `defaults.ts`.
+String keySlug(String key) {
+  final buffer = StringBuffer();
+  for (final rune in normalizeKey(key).runes) {
+    final char = String.fromCharCode(rune);
+    if (char == ' ') {
+      buffer.write('-');
+    } else if (_plain.hasMatch(char)) {
+      buffer.write(char);
+    } else {
+      for (final byte in utf8.encode(char)) {
+        buffer.write(
+          '%${byte.toRadixString(16).toUpperCase().padLeft(2, '0')}',
+        );
+      }
+    }
+  }
+  return buffer.toString();
+}

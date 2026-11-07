@@ -32,21 +32,39 @@ void main() {
   });
 
   group('keySlug', () {
+    // The same cases as functions/src/defaults.test.ts: the app and the
+    // Functions must agree.
     test('makes a key usable as a document ID', () {
       expect(keySlug('black pepper'), 'black-pepper');
       expect(keySlug('Black  Pepper'), 'black-pepper');
-      expect(keySlug('salt/peppar'), 'salt-peppar');
-      expect(keySlug('crème.fraîche'), 'crème-fraîche');
+      expect(keySlug('salt/peppar'), 'salt%2Fpeppar');
+      expect(keySlug('crème fraîche'), 'crème-fraîche');
+      expect(keySlug('st. agur'), 'st%2E-agur');
+      expect(keySlug('half-and-half'), 'half%2Dand%2Dhalf');
     });
 
     test('never yields a reserved document ID', () {
-      expect(keySlug('.'), '-');
-      expect(keySlug('..'), '-');
+      expect(keySlug('.'), '%2E');
+      expect(keySlug('..'), '%2E%2E');
+      expect(keySlug('__id__'), '%5F%5Fid%5F%5F');
+    });
+
+    test('keeps keys that differ only in punctuation apart', () {
+      expect(keySlug('half and half'), isNot(keySlug('half-and-half')));
+      expect(keySlug('st. agur'), isNot(keySlug('st agur')));
     });
 
     Glados(any.letters).test('never contains a slash', (text) {
       expect(keySlug('$text/$text').contains('/'), isFalse);
     });
+
+    Glados2(any.nonEmptyLetterOrDigits, any.nonEmptyLetterOrDigits).test(
+      'is one-to-one on normalized keys',
+      (a, b) {
+        final keys = ['$a $b', '$a-$b', '$a.$b', '$a/$b', '$a%2D$b'];
+        expect(keys.map(keySlug).toSet(), hasLength(keys.length));
+      },
+    );
   });
 
   group('checkDocumentId', () {
@@ -57,7 +75,7 @@ void main() {
       );
       expect(
         const LineId('garlic', NamedMeasure('klyftor')).documentId,
-        'garlic--named:klyftor',
+        'garlic--named%3Aklyftor',
       );
     });
 

@@ -208,7 +208,10 @@ staples/{keySlug}
 ```
 
 The document ID is derived from the key, so the same staple can't be added
-twice. Seeded with defaults when the kitchen is created.
+twice. `keySlug` keeps letters and digits, turns spaces into `-` and
+percent-encodes the rest, so different keys never share an ID ("half and
+half" is `half-and-half`, "half-and-half" is `half%2Dand%2Dhalf`). The same
+rule names overrides and checks. Seeded with defaults when the kitchen is created.
 
 ### Import jobs
 

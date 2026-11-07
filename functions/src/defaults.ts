@@ -72,11 +72,23 @@ export const defaultStaples = [
   "rapeseed oil",
 ];
 
-/** A key as a document ID, as in the app's `keySlug`. */
+/**
+ * A key as a document ID, the same as the app's `keySlug`: letters and digits
+ * stay, spaces become `-`, and everything else is percent-encoded.
+ */
 export function keySlug(key: string): string {
-  return key
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/[\s/.]+/g, "-");
+  const normalized = key.trim().toLowerCase().replace(/\s+/g, " ");
+  let id = "";
+  for (const char of normalized) {
+    if (char === " ") {
+      id += "-";
+    } else if (/[\p{L}\p{N}]/u.test(char)) {
+      id += char;
+    } else {
+      for (const byte of new TextEncoder().encode(char)) {
+        id += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+      }
+    }
+  }
+  return id;
 }
