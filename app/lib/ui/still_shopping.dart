@@ -96,17 +96,30 @@ String stillToBuy(RecipeGroup group) {
 }
 
 /// Shows what is still to buy for the planned recipe [entryId], with ticks
-/// that are the shopping list's own.
+/// that are the shopping list's own: in a bottom sheet on a phone, within
+/// reach of the thumb, and in a dialog in the middle of a wide screen.
 Future<void> showMissing(BuildContext context, String entryId) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Palette.enamel,
-      builder: (context) => _MissingSheet(entryId: entryId),
-    );
+    MediaQuery.sizeOf(context).width >= wideBreakpoint
+    ? showDialog<void>(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Palette.enamel,
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: _Missing(entryId: entryId),
+          ),
+        ),
+      )
+    : showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Palette.enamel,
+        builder: (context) => _Missing(entryId: entryId),
+      );
 
-class _MissingSheet extends ConsumerWidget {
-  const _MissingSheet({required this.entryId});
+class _Missing extends ConsumerWidget {
+  const _Missing({required this.entryId});
 
   final String entryId;
 

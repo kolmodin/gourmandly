@@ -56,6 +56,40 @@ void main() {
       expect(kitchens.state.checks, isEmpty);
     });
 
+    testWidgets('shows what is missing in a sheet on a phone', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith(planned: [entryFor('soup')])),
+      );
+      await tester.tap(find.text('Löksoppa').first);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+    });
+
+    testWidgets('shows what is missing in the middle of a wide screen', (
+      tester,
+    ) async {
+      const size = Size(1280, 800);
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith(planned: [entryFor('soup')])),
+        size: size,
+      );
+      await tester.tap(find.text('Löksoppa').first);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      final dialog = tester.getRect(find.byType(Dialog));
+      expect(dialog.center.dx, closeTo(size.width / 2, 1));
+      expect(dialog.center.dy, closeTo(size.height / 2, 1));
+      await tester.tap(find.text('4 st onion'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('4 servings, 1 of 2 ingredients to buy'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('the missing sheet says when a line is shared', (tester) async {
       await pumpApp(
         tester,
