@@ -21,8 +21,10 @@ sites mark "popular" or "new":
 
 On the home screen, recipes still being shopped for are listed in their own
 "Still shopping" section below "To cook", naming what is missing ("Missing:
-guanciale, äggulor, pecorino"). A tap opens a sheet with those ingredients
-to tick, so nobody has to find the recipe on the shopping list.
+guanciale, äggulor, pecorino"). A tap shows those ingredients to tick, so
+nobody has to find the recipe on the shopping list: in a bottom sheet on a
+phone, within reach of the thumb, and in a dialog in the middle of a wide
+screen.
 
 Saffron means cooking and nothing else, so selected states and accents are
 cobalt.
