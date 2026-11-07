@@ -235,6 +235,15 @@ void main() {
       expect(included['excluded'], FieldValue.arrayRemove(['a']));
     });
 
+    test('refuses to add to and remove from one array', () {
+      expect(
+        () => plannedUpdate(
+          UpdatePlanned('e', addDone: {'a'}.lock, removeDone: {'b'}.lock),
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('sets and clears times', () {
       final set = plannedUpdate(
         UpdatePlanned('e', shoppedAt: t0, cookingStartedAt: t0),

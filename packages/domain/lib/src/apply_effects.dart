@@ -55,6 +55,11 @@ KitchenState _apply(KitchenState state, Effect effect) => switch (effect) {
     state,
     planned: state.planned.add(entry),
   ),
+  UpdatePlanned(isWritable: false) => throw ArgumentError.value(
+    effect,
+    'effect',
+    'not one Firestore write',
+  ),
   UpdatePlanned() => _copy(
     state,
     planned: [

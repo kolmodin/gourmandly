@@ -78,7 +78,9 @@ final class CreatePlanned extends Effect {
 }
 
 /// Field-level changes to a planned recipe. The `add` and `remove` sets map to
-/// `arrayUnion` and `arrayRemove`.
+/// `arrayUnion` and `arrayRemove`, and Firestore can't do both to one array in
+/// one write: an update with both for one array is refused, see
+/// [isWritable].
 final class UpdatePlanned extends Effect {
   const UpdatePlanned(
     this.entryId, {
@@ -103,6 +105,12 @@ final class UpdatePlanned extends Effect {
   final bool clearShoppedAt;
   final DateTime? cookingStartedAt;
   final bool clearCookingStartedAt;
+
+  /// Whether one Firestore write can make this update: it neither adds to and
+  /// removes from `done`, nor `excluded`.
+  bool get isWritable =>
+      (addDone.isEmpty || removeDone.isEmpty) &&
+      (addExcluded.isEmpty || removeExcluded.isEmpty);
 
   @override
   List<Object?> get props => [

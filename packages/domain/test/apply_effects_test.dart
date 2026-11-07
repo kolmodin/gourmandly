@@ -34,6 +34,29 @@ void main() {
     expect(applyEffects(state, [UpdatePlanned('gone', shoppedAt: t0)]), state);
   });
 
+  test('refuses what Firestore can\'t do in one write', () {
+    final state = kitchen(recipes: [soup]);
+    for (final update in [
+      UpdatePlanned('gone', addDone: {'a'}.lock, removeDone: {'b'}.lock),
+      UpdatePlanned(
+        'gone',
+        addExcluded: {'a'}.lock,
+        removeExcluded: {'b'}.lock,
+      ),
+    ]) {
+      expect(update.isWritable, isFalse);
+      expect(() => applyEffects(state, [update]), throwsArgumentError);
+    }
+    expect(
+      UpdatePlanned(
+        'e',
+        addDone: {'a'}.lock,
+        removeExcluded: {'b'}.lock,
+      ).isWritable,
+      isTrue,
+    );
+  });
+
   test('deleting missing things does nothing', () {
     final state = kitchen(recipes: [soup]);
     expect(

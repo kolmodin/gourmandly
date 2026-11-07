@@ -232,6 +232,9 @@ final class FirestoreKitchenRepository implements KitchenRepository {
 
 /// The fields an [UpdatePlanned] changes.
 Json plannedUpdate(UpdatePlanned update) {
+  if (!update.isWritable) {
+    throw ArgumentError.value(update, 'update', 'not one Firestore write');
+  }
   Timestamp timestamp(DateTime at) => Timestamp.fromDate(at);
   final done = update.addDone.isNotEmpty
       ? FieldValue.arrayUnion(update.addDone.toList())
