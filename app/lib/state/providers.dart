@@ -36,6 +36,19 @@ final clockProvider = Provider<DateTime Function()>(
 /// Where messages about failures go, wherever the user is by then.
 final messengerKey = GlobalKey<ScaffoldMessengerState>();
 
+/// Runs [action] and says whether it worked. When it doesn't, the user is
+/// told [failure], so that nothing fails silently.
+Future<bool> attempt(String failure, Future<void> Function() action) async {
+  try {
+    await action();
+    return true;
+  } on Object catch (error) {
+    debugPrint('$failure $error');
+    messengerKey.currentState?.showSnackBar(SnackBar(content: Text(failure)));
+    return false;
+  }
+}
+
 Duration? _noRetry(int count, Object error) => null;
 
 final userProvider = StreamProvider<AppUser?>(
@@ -115,8 +128,12 @@ final class CookingTicks extends Notifier<ISet<String>> {
   ISet<String> build() {
     final stored = ref.watch(localSettingsProvider).read(_key);
     if (stored == null) return const ISetConst({});
-    final decoded = jsonDecode(stored);
-    return decoded is List ? decoded.whereType<String>().toISet() : ISet();
+    try {
+      final decoded = jsonDecode(stored);
+      return decoded is List ? decoded.whereType<String>().toISet() : ISet();
+    } on FormatException {
+      return const ISetConst({});
+    }
   }
 
   void toggle(String id) {

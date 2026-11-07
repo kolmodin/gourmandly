@@ -570,6 +570,22 @@ void main() {
       expect(kitchens.applied, isEmpty);
     });
 
+    testWidgets('ignores ticks the device can\'t read', (tester) async {
+      final settings = FakeSettings()..values['ticks.e1'] = '[unfinished';
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(
+          kitchenWith(
+            planned: [entryFor('soup', shoppedAt: now, cookingStartedAt: now)],
+          ),
+        ),
+        settings: settings,
+        location: '/recipes/soup',
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('4 st onion'), findsOneWidget);
+    });
+
     testWidgets('done cooking records it and goes home', (tester) async {
       final kitchens = FakeKitchens(
         kitchenWith(
@@ -713,6 +729,24 @@ void main() {
       expect(find.text('Hemma'), findsOneWidget);
     });
 
+    testWidgets('says when creating a kitchen fails, and lets it be tried '
+        'again', (tester) async {
+      final account = FakeAccount(kitchens: [])..failure = StateError('down');
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith()),
+        account: account,
+      );
+      await tester.enterText(find.byType(TextField).first, 'Hemma');
+      await tester.tap(find.text('Create kitchen'));
+      await settle(tester);
+      expect(find.text('That didn\'t work. Try it again.'), findsOneWidget);
+      account.failure = null;
+      await tester.tap(find.text('Create kitchen'));
+      await settle(tester);
+      expect(account.created, ['Hemma']);
+    });
+
     testWidgets('a new user creates a kitchen explicitly', (tester) async {
       final account = FakeAccount(kitchens: []);
       await pumpApp(
@@ -740,6 +774,21 @@ void main() {
       expect(find.text('Erik'), findsOneWidget);
       expect(find.text('Owner'), findsOneWidget);
       expect(find.text('Hand over'), findsOneWidget);
+    });
+
+    testWidgets('says when an invite link can\'t be made', (tester) async {
+      await pumpApp(
+        tester,
+        kitchens: FakeKitchens(kitchenWith()),
+        account: FakeAccount()..failure = StateError('offline'),
+        location: '/kitchen',
+      );
+      await tester.tap(find.text('Copy invite link'));
+      await settle(tester);
+      expect(
+        find.text('The invite link wasn\'t made. Try it again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('warns the owner before deleting a kitchen', (tester) async {

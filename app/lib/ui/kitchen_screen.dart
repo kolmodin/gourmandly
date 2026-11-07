@@ -50,7 +50,12 @@ class KitchenScreen extends ConsumerWidget {
     final isOwner = kitchen.ownerId == user.id;
 
     Future<void> invite() async {
-      final token = await account.createInvite(kitchen.id);
+      String? token;
+      final made = await attempt(
+        'The invite link wasn\'t made. Try it again.',
+        () async => token = await account.createInvite(kitchen.id),
+      );
+      if (!made) return;
       await Clipboard.setData(
         ClipboardData(text: '${Uri.base.origin}/join/$token'),
       );
@@ -73,8 +78,14 @@ class KitchenScreen extends ConsumerWidget {
             : 'You can come back with a new invite.',
         action: isOwner ? 'Delete kitchen' : 'Leave kitchen',
       );
-      if (confirmed) await account.leaveKitchen(kitchen.id);
-      if (confirmed && context.mounted) context.go('/');
+      if (!confirmed) return;
+      final left = await attempt(
+        isOwner
+            ? 'The kitchen wasn\'t deleted. Try it again.'
+            : 'You haven\'t left the kitchen. Try it again.',
+        () => account.leaveKitchen(kitchen.id),
+      );
+      if (left && context.mounted) context.go('/');
     }
 
     Future<void> handOver(String memberId, String name) async {
@@ -84,7 +95,12 @@ class KitchenScreen extends ConsumerWidget {
         text: '$name becomes the owner of ${kitchen.name}.',
         action: 'Hand over',
       );
-      if (confirmed) await account.transferOwnership(kitchen.id, memberId);
+      if (confirmed) {
+        await attempt(
+          'The kitchen wasn\'t handed over. Try it again.',
+          () => account.transferOwnership(kitchen.id, memberId),
+        );
+      }
     }
 
     Future<void> deleteAccount() async {
@@ -96,7 +112,12 @@ class KitchenScreen extends ConsumerWidget {
             'their recipes.',
         action: 'Delete account',
       );
-      if (confirmed) await account.deleteAccount();
+      if (confirmed) {
+        await attempt(
+          'Your account wasn\'t deleted. Try it again.',
+          account.deleteAccount,
+        );
+      }
     }
 
     return Scaffold(

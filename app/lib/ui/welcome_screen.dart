@@ -97,12 +97,21 @@ class _StartScreenState extends ConsumerState<StartScreen> {
       _busy = true;
       _problem = null;
     });
+    String? problem;
     try {
       await action();
     } on FirebaseFunctionsException catch (error) {
-      setState(() => _problem = error.message);
+      problem = error.message;
+    } on Object catch (error) {
+      debugPrint('$error');
+      problem = 'That didn\'t work. Try it again.';
     }
-    if (mounted) setState(() => _busy = false);
+    if (mounted) {
+      setState(() {
+        _busy = false;
+        _problem = problem;
+      });
+    }
   }
 
   Future<void> _create() => _run(() async {
@@ -189,11 +198,14 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
       final id = await account.acceptInvite(widget.token);
       ref.read(chosenKitchenProvider.notifier).choose(id);
       if (mounted) context.go('/');
-    } on FirebaseFunctionsException catch (error) {
+    } on Object catch (error) {
+      debugPrint('$error');
       if (mounted) {
         setState(() {
           _busy = false;
-          _problem = error.message;
+          _problem = error is FirebaseFunctionsException
+              ? error.message
+              : 'That didn\'t work. Try it again.';
         });
       }
     }

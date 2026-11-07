@@ -134,6 +134,9 @@ final class FakeAccount implements AccountRepository {
   final accepted = <String>[];
   var signedInWithGoogle = false;
 
+  /// What creating a kitchen or an invite throws, when set.
+  Object? failure;
+
   @override
   Stream<AppUser?> watchUser() => Stream.value(user);
 
@@ -152,12 +155,16 @@ final class FakeAccount implements AccountRepository {
     required String name,
     required String language,
   }) async {
+    if (failure case final error?) throw error;
     created.add(name);
     return kitchenId;
   }
 
   @override
-  Future<String> createInvite(String kitchenId) async => 'token';
+  Future<String> createInvite(String kitchenId) async {
+    if (failure case final error?) throw error;
+    return 'token';
+  }
 
   @override
   Future<String> acceptInvite(String token) async {
