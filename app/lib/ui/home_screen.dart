@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../data/repositories.dart';
 import '../state/providers.dart';
+import 'panel.dart';
 import 'photo.dart';
 import 'still_shopping.dart';
 import 'theme.dart';
@@ -41,11 +42,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   );
 
   Future<void> _openFilters(IList<Tag> tags) async {
-    final chosen = await showModalBottomSheet<TagFilter>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Palette.enamel,
-      builder: (context) => _FilterSheet(tags: tags, initial: _filter),
+    final chosen = await showPanel<TagFilter>(
+      context,
+      (context) => _Filters(tags: tags, initial: _filter),
     );
     if (chosen != null) setState(() => _filter = chosen);
   }
@@ -289,17 +288,17 @@ class _RecipeTile extends StatelessWidget {
   }
 }
 
-class _FilterSheet extends StatefulWidget {
-  const _FilterSheet({required this.tags, required this.initial});
+class _Filters extends StatefulWidget {
+  const _Filters({required this.tags, required this.initial});
 
   final IList<Tag> tags;
   final TagFilter initial;
 
   @override
-  State<_FilterSheet> createState() => _FilterSheetState();
+  State<_Filters> createState() => _FiltersState();
 }
 
-class _FilterSheetState extends State<_FilterSheet> {
+class _FiltersState extends State<_Filters> {
   late var _categories = widget.initial.categories;
 
   void _toggle(TagCategory category, String tagId) {

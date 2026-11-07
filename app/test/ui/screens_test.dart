@@ -208,6 +208,25 @@ void main() {
       expect(find.text('Löksoppa'), findsNothing);
       expect(find.textContaining('Nothing matches'), findsOneWidget);
     });
+
+    testWidgets('shows tag filters in the middle of a wide screen', (
+      tester,
+    ) async {
+      const size = Size(1280, 800);
+      await pumpApp(tester, kitchens: FakeKitchens(kitchenWith()), size: size);
+      await tester.tap(find.byTooltip('Filter by tag'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      final dialog = tester.getRect(find.byType(Dialog));
+      expect(dialog.center.dx, closeTo(size.width / 2, 1));
+      expect(dialog.center.dy, closeTo(size.height / 2, 1));
+      await tester.tap(find.text('quick'));
+      await tester.pump();
+      await tester.tap(find.text('Show recipes'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.textContaining('Nothing matches'), findsOneWidget);
+    });
   });
 
   group('shopping list', () {
