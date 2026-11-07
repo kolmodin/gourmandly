@@ -44,6 +44,18 @@ void main() {
       expect(unitFromSymbol('dl'), StandardUnit.dl);
       expect(unitFromSymbol('burk'), const NamedUnit('burk'));
     });
+
+    test('unitFromSymbol ignores case and spacing', () {
+      expect(unitFromSymbol('L'), StandardUnit.l);
+      expect(unitFromSymbol(' Dl '), StandardUnit.dl);
+    });
+
+    test('are one measure whatever their case', () {
+      expect(
+        const NamedUnit('Klyftor ').measure,
+        const NamedUnit('klyftor').measure,
+      );
+    });
   });
 
   group('measure ids', () {

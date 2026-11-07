@@ -140,7 +140,8 @@ the largest unit that keeps the number readable. Mass and volume are never
 converted into each other (see the wishlist).
 
 Any other unit (`klyftor`, `burk`, `förp`) is a named unit: a measure of its
-own, which merges only with itself. An ingredient without a quantity ("salt
+own, which merges only with itself. Units are read regardless of case and
+spacing: `L` is litres, and `Klyftor` merges with `klyftor`. An ingredient without a quantity ("salt
 efter smak") gets a line of its own, separate from quantified lines of the same
 key.
 

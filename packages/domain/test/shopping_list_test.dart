@@ -194,6 +194,31 @@ void main() {
       );
     });
 
+    test('a named unit merges whatever its case', () {
+      final list = shoppingList(
+        kitchen(
+          recipes: [
+            recipe('a', [
+              ingredient(
+                'garlic',
+                id: 'g1',
+                quantity: Exact(Fraction(2)),
+                unit: const NamedUnit('klyftor'),
+              ),
+              ingredient(
+                'garlic',
+                id: 'g2',
+                quantity: Exact(Fraction(3)),
+                unit: const NamedUnit('Klyftor'),
+              ),
+            ]),
+          ],
+          planned: [planned('e1', 'a')],
+        ),
+      );
+      expect(texts(list.lines), ['5 klyftor garlic']);
+    });
+
     test('an ingredient without a quantity is a line of its own', () {
       final list = shoppingList(
         kitchen(

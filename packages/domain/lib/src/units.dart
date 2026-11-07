@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'fraction.dart';
+import 'text.dart';
 
 /// What a quantity measures. Lines on the shopping list merge only within one
 /// measure: mass and volume are never converted into each other.
@@ -92,12 +93,15 @@ final class NamedUnit extends Equatable implements Unit {
   @override
   final String symbol;
 
+  /// Spellings that differ only in case or spacing are one measure:
+  /// `klyftor` and `Klyftor` add up.
   @override
-  Measure get measure => NamedMeasure(symbol);
+  Measure get measure => NamedMeasure(normalizeKey(symbol));
 
   @override
   List<Object> get props => [symbol];
 }
 
+/// The unit [symbol] stands for, whatever its case: `L` is litres.
 Unit unitFromSymbol(String symbol) =>
-    StandardUnit.bySymbol(symbol) ?? NamedUnit(symbol);
+    StandardUnit.bySymbol(normalizeKey(symbol)) ?? NamedUnit(symbol);
