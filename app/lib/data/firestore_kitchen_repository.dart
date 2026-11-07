@@ -46,10 +46,16 @@ final class FirestoreKitchenRepository implements KitchenRepository {
         Future.wait(subscriptions.map((subscription) => subscription.cancel()));
 
     // One dead listener would leave its snapshot frozen while the others go
-    // on, so any error ends the whole stream.
+    // on, so any error ends the whole stream. The rules refuse to read a
+    // kitchen that is gone as well as one the user is no longer in.
     void fail(Object error, StackTrace stackTrace) {
       if (controller.isClosed) return;
-      controller.addError(error, stackTrace);
+      controller.addError(
+        error is FirebaseException && error.code == 'permission-denied'
+            ? const KitchenGone()
+            : error,
+        stackTrace,
+      );
       unawaited(controller.close());
       unawaited(stop());
     }

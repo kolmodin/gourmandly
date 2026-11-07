@@ -696,7 +696,25 @@ void main() {
       final kitchens = FakeKitchens(kitchenWith())
         ..failure = const KitchenGone();
       await pumpApp(tester, kitchens: kitchens, account: account);
-      expect(account.left, [kitchenId]);
+      expect(account.forgotten, [kitchenId]);
+      expect(account.left, isEmpty);
+    });
+
+    testWidgets('offers to try again when a kitchen can\'t be opened', (
+      tester,
+    ) async {
+      final kitchens = FakeKitchens(kitchenWith())
+        ..failure = StateError('offline');
+      await pumpApp(tester, kitchens: kitchens);
+      expect(
+        find.text('This kitchen can\'t be opened right now.'),
+        findsOneWidget,
+      );
+      kitchens.failure = null;
+      await tester.tap(find.text('Try again'));
+      await settle(tester);
+      expect(find.text('To cook'), findsNothing);
+      expect(find.text('Hemma'), findsOneWidget);
     });
   });
 

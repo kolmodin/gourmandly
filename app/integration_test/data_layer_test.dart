@@ -310,9 +310,7 @@ void main() {
     testWidgets('a deleted kitchen ends the stream', (tester) async {
       final settled = expectLater(
         alice.repository.watch(kitchenId),
-        emitsThrough(
-          emitsError(anyOf(isA<KitchenGone>(), isA<FirebaseException>())),
-        ),
+        emitsThrough(emitsError(isA<KitchenGone>())),
       );
       await alice.until(kitchenId, (data) => data.isSynced);
       await alice.account.leaveKitchen(kitchenId);

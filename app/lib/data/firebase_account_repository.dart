@@ -76,6 +76,10 @@ final class FirebaseAccountRepository implements AccountRepository {
       _call('leaveKitchen', {'kitchenId': kitchenId});
 
   @override
+  Future<void> forgetKitchen(String kitchenId) =>
+      _call('forgetKitchen', {'kitchenId': kitchenId});
+
+  @override
   Future<void> transferOwnership(String kitchenId, String newOwnerId) => _call(
     'transferOwnership',
     {'kitchenId': kitchenId, 'newOwnerId': newOwnerId},

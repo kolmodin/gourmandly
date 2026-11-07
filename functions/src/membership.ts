@@ -114,6 +114,25 @@ export function leaving(kitchen: Kitchen | undefined, uid: string): Decision<Lea
   return ok(kitchen.ownerId === uid ? "deleteKitchen" : "removeMember");
 }
 
+/**
+ * Forgetting a kitchen takes it off the user's list and never deletes
+ * anything: the app does it for a kitchen it can no longer read. A kitchen
+ * that is gone is taken off every user still listing it, finishing a deletion
+ * that was interrupted; a member has to leave instead.
+ */
+export type Forgetting = "everywhere" | "forCaller";
+
+export function forgetting(
+  kitchen: Kitchen | undefined,
+  uid: string,
+): Decision<Forgetting> {
+  if (kitchen === undefined) return ok("everywhere");
+  if (kitchen.memberIds.includes(uid)) {
+    return refuse("failed-precondition", "You're still a member of this kitchen.");
+  }
+  return ok("forCaller");
+}
+
 export function transfer(
   kitchen: Kitchen | undefined,
   uid: string,

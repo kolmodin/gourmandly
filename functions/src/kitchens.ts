@@ -16,6 +16,7 @@ import {
   acceptance,
   canCreateKitchen,
   canInvite,
+  forgetting,
   inviteExpiry,
   leaving,
   memberName,
@@ -161,6 +162,19 @@ export const acceptInvite = onCall(async (request) => {
  * members until the very end, so that an interrupted deletion can be repeated
  * by leaving again. Invites go first, so that nobody can join halfway.
  */
+/** Takes a kitchen that is gone off every user who still lists it. */
+async function forgetEverywhere(db: Firestore, kitchenId: string): Promise<void> {
+  const users = await db
+    .collection("users")
+    .where("kitchenIds", "array-contains", kitchenId)
+    .get();
+  const writer = db.bulkWriter();
+  for (const user of users.docs) {
+    void writer.update(user.ref, { kitchenIds: FieldValue.arrayRemove(kitchenId) });
+  }
+  await writer.close();
+}
+
 async function deleteKitchen(db: Firestore, kitchenId: string): Promise<void> {
   const ref = kitchenRef(db, kitchenId);
   const invites = await db
@@ -213,12 +227,31 @@ async function leave(db: Firestore, kitchenId: string, uid: string): Promise<voi
   if (outcome === "deleteKitchen") {
     await deleteKitchen(db, kitchenId);
   }
+  if (outcome === "forget") {
+    await forgetEverywhere(db, kitchenId);
+  }
 }
 
 export const leaveKitchen = onCall(async (request) => {
   const uid = callerOf(request);
   const kitchenId = unwrap(parseId(dataOf(request)["kitchenId"], "kitchen"));
   await leave(getFirestore(), kitchenId, uid);
+  return {};
+});
+
+export const forgetKitchen = onCall(async (request) => {
+  const uid = callerOf(request);
+  const kitchenId = unwrap(parseId(dataOf(request)["kitchenId"], "kitchen"));
+  const db = getFirestore();
+  const kitchen = await readKitchen(kitchenRef(db, kitchenId));
+  if (unwrap(forgetting(kitchen, uid)) === "everywhere") {
+    await forgetEverywhere(db, kitchenId);
+  } else {
+    await userRef(db, uid).set(
+      { kitchenIds: FieldValue.arrayRemove(kitchenId) },
+      { merge: true },
+    );
+  }
   return {};
 });
 

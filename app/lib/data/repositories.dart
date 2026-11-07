@@ -23,7 +23,8 @@ final class KitchenData extends Equatable {
   List<Object> get props => [kitchen, state, tags, isSynced];
 }
 
-/// The kitchen doesn't exist (any more).
+/// The kitchen doesn't exist (any more), or this user is no longer in it:
+/// either way, it can only be forgotten.
 final class KitchenGone implements Exception {
   const KitchenGone();
 }
@@ -32,8 +33,8 @@ final class KitchenGone implements Exception {
 abstract interface class KitchenRepository {
   /// A live view of the kitchen. Works offline, from the local cache.
   ///
-  /// Ends with an error when the kitchen can't be followed any further: for
-  /// example [KitchenGone], or being refused after leaving it.
+  /// Ends with an error when the kitchen can't be followed any further:
+  /// [KitchenGone] when it is gone or the user was taken off it.
   Stream<KitchenData> watch(String kitchenId);
 
   /// Applies the effects of one decision. An effect on a document that has
@@ -85,6 +86,10 @@ abstract interface class AccountRepository {
   Future<String> acceptInvite(String token);
 
   Future<void> leaveKitchen(String kitchenId);
+
+  /// Takes a kitchen that is gone, or that the user was taken off, off the
+  /// user's list. Never deletes anything; refused while still a member.
+  Future<void> forgetKitchen(String kitchenId);
   Future<void> transferOwnership(String kitchenId, String newOwnerId);
   Future<void> deleteAccount();
 }

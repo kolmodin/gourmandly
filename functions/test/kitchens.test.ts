@@ -248,10 +248,12 @@ describe("leaveKitchen", () => {
     assert.equal((await db().doc(`invites/${token}`).get()).exists, false);
   });
 
-  it("forgets a kitchen that is gone but still listed", async () => {
+  it("forgets a kitchen that is gone but still listed, for everyone", async () => {
+    await db().doc(`users/${alice.uid}`).set({ kitchenIds: ["gone"] });
     await db().doc(`users/${bob.uid}`).set({ kitchenIds: ["gone"] });
     await bob.call("leaveKitchen", { kitchenId: "gone" });
     assert.deepEqual(await kitchenIds(bob.uid), []);
+    assert.deepEqual(await kitchenIds(alice.uid), []);
   });
 
   it("removes the name of a member who leaves", async () => {
@@ -265,6 +267,32 @@ describe("leaveKitchen", () => {
     const kitchenId = await kitchenWithBob();
     await refused(mallory.call("leaveKitchen", { kitchenId }), "not-found");
     assert.equal(((await kitchen(kitchenId))?.["memberIds"] as string[]).length, 2);
+  });
+});
+
+describe("forgetKitchen", () => {
+  it("finishes an interrupted deletion for every member", async () => {
+    await db().doc(`users/${alice.uid}`).set({ kitchenIds: ["gone", "other"] });
+    await db().doc(`users/${bob.uid}`).set({ kitchenIds: ["gone"] });
+    await bob.call("forgetKitchen", { kitchenId: "gone" });
+    assert.deepEqual(await kitchenIds(alice.uid), ["other"]);
+    assert.deepEqual(await kitchenIds(bob.uid), []);
+  });
+
+  it("forgets a kitchen the caller was removed from, for the caller only", async () => {
+    const kitchenId = await kitchenWithBob();
+    await db().doc(`users/${mallory.uid}`).set({ kitchenIds: [kitchenId] });
+    await mallory.call("forgetKitchen", { kitchenId });
+    assert.deepEqual(await kitchenIds(mallory.uid), []);
+    assert.deepEqual(await kitchenIds(bob.uid), [kitchenId]);
+  });
+
+  it("never deletes a kitchen, not even its owner's", async () => {
+    const kitchenId = await kitchenWithBob();
+    await refused(alice.call("forgetKitchen", { kitchenId }), "failed-precondition");
+    await refused(bob.call("forgetKitchen", { kitchenId }), "failed-precondition");
+    assert.equal(((await kitchen(kitchenId))?.["memberIds"] as string[]).length, 2);
+    assert.deepEqual(await kitchenIds(bob.uid), [kitchenId]);
   });
 });
 

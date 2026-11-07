@@ -55,11 +55,17 @@ class _ShellState extends ConsumerState<Shell> {
           _tidied != data.kitchen.id) {
         _tidy();
       }
-      // A kitchen that was deleted while this user was still listed on it.
+      // A kitchen that was deleted, or that this user was taken off, while
+      // still on their list. Forgetting it moves on to another kitchen.
       if (next.error is KitchenGone) {
         final id = ref.read(currentKitchenIdProvider);
         if (id != null) {
-          unawaited(ref.read(accountRepositoryProvider).leaveKitchen(id));
+          unawaited(
+            attempt(
+              'This kitchen is gone, but couldn\'t be taken off your list.',
+              () => ref.read(accountRepositoryProvider).forgetKitchen(id),
+            ),
+          );
         }
       }
     });

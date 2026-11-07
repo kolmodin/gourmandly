@@ -56,7 +56,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (data == null) {
       return Center(
         child: kitchen.hasError
-            ? const Text('This kitchen can\'t be opened right now.')
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('This kitchen can\'t be opened right now.'),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => ref.invalidate(kitchenDataProvider),
+                    child: const Text('Try again'),
+                  ),
+                ],
+              )
             : const CircularProgressIndicator(),
       );
     }

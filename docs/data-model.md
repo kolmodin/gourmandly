@@ -78,8 +78,13 @@ kitchen and change its language.
 - **Leave:** removes a member. When the owner leaves, the kitchen and
   everything under it (including stored photos and open invites) are deleted;
   the warning before that is up to the app. A deletion that is interrupted can
-  be repeated by leaving again, and leaving a kitchen that is already gone just
-  removes it from the user.
+  be repeated by leaving again, and leaving a kitchen that is already gone
+  removes it from every user still listing it.
+- **Forget:** takes a kitchen the user can no longer read off their list,
+  and never deletes anything. The app does it when the rules refuse it a
+  kitchen. A kitchen that is gone is taken off every user still listing it,
+  which finishes an interrupted deletion; one the user was taken off is
+  forgotten by that user only. Refused while the user is still a member.
 - **Transfer ownership:** the owner makes another member the owner.
 - **Delete account:** leaves every kitchen as above, then deletes the user.
 

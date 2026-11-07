@@ -6,6 +6,7 @@ import {
   canCreateKitchen,
   canInvite,
   inviteExpiry,
+  forgetting,
   leaving,
   memberName,
   parseId,
@@ -130,6 +131,21 @@ describe("leaving", () => {
 
   it("forgets a kitchen that is gone", () => {
     assert.deepEqual(leaving(undefined, "alice"), { ok: true, value: "forget" });
+  });
+});
+
+describe("forgetting", () => {
+  it("forgets a kitchen that is gone for everyone", () => {
+    assert.deepEqual(forgetting(undefined, "alice"), { ok: true, value: "everywhere" });
+  });
+
+  it("forgets a kitchen the caller is no longer in for the caller only", () => {
+    assert.deepEqual(forgetting(kitchen, "mallory"), { ok: true, value: "forCaller" });
+  });
+
+  it("refuses members, who have to leave", () => {
+    assert.equal(refusalCode(forgetting(kitchen, "bob")), "failed-precondition");
+    assert.equal(refusalCode(forgetting(kitchen, "alice")), "failed-precondition");
   });
 });
 

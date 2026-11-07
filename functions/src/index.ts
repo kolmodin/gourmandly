@@ -5,6 +5,7 @@ export {
   createInvite,
   createKitchen,
   deleteAccount,
+  forgetKitchen,
   leaveKitchen,
   transferOwnership,
 } from "./kitchens.ts";
