@@ -63,6 +63,7 @@ PlannedRecipe entryFor(
   String id = 'e1',
   DateTime? shoppedAt,
   DateTime? cookingStartedAt,
+  List<String> excluded = const [],
 }) => PlannedRecipe(
   id: id,
   recipeId: recipeId,
@@ -70,6 +71,7 @@ PlannedRecipe entryFor(
   addedAt: now,
   shoppedAt: shoppedAt,
   cookingStartedAt: cookingStartedAt,
+  excluded: excluded.toISet(),
 );
 
 final class FakeKitchens implements KitchenRepository {

@@ -103,7 +103,9 @@ cooking and grocery shopping. Small scale; it may never have users beyond that.
 - Pick recipes from the store, scale them (e.g. 4 → 8 servings), add to the list.
 - Two views:
   - **Ingredients:** all items flattened and aggregated.
-  - **By recipe:** grouped per recipe, so a whole recipe can be removed.
+  - **By recipe:** grouped per recipe, so a whole recipe can be removed, or
+    an ingredient left out because it's already at home. Both can be undone,
+    and left-out ingredients stay listed under the recipe to bring back.
 - Manual items (e.g. "milk") can be added without a recipe.
 - Check items off while shopping. Works offline and syncs live between
   kitchen members, similar to Google Keep.

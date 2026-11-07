@@ -375,6 +375,19 @@ class _ByRecipe extends ConsumerWidget {
               (entry, recipe),
     ];
 
+    void undoable(String message, Effect effect, Effect undo) {
+      actions.apply([effect]);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () => actions.apply([undo]),
+          ),
+        ),
+      );
+    }
+
     void markBought(PlannedRecipe entry) {
       actions.apply([markShopped(entry, now: actions.now)]);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -422,8 +435,11 @@ class _ByRecipe extends ConsumerWidget {
                         ),
                         TextButton(
                           style: flushTextButton,
-                          onPressed: () =>
-                              actions.apply([DeletePlanned(group.entry.id)]),
+                          onPressed: () => undoable(
+                            'Removed ${group.recipe.title}',
+                            DeletePlanned(group.entry.id),
+                            CreatePlanned(group.entry),
+                          ),
                           child: const Text('Remove'),
                         ),
                       ],
@@ -458,10 +474,35 @@ class _ByRecipe extends ConsumerWidget {
                     tooltip: 'Already have this',
                     visualDensity: VisualDensity.compact,
                     iconSize: 18,
-                    onPressed: () => actions.apply([
+                    onPressed: () => undoable(
+                      'Already have ${item.ingredient.name}',
                       excludeIngredient(group.entry, item.ingredient.id),
-                    ]),
+                      includeIngredient(group.entry, item.ingredient.id),
+                    ),
                     icon: const Icon(Icons.close, color: Palette.pewter),
+                  ),
+                ],
+              ),
+            ),
+          for (final ingredient in group.excluded)
+            Padding(
+              padding: const EdgeInsets.only(left: 68, top: 3, bottom: 3),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Already have ${ingredient.name}',
+                      style: Fonts.sans(16, color: Palette.pewter),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Buy this after all',
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 18,
+                    onPressed: () => actions.apply([
+                      includeIngredient(group.entry, ingredient.id),
+                    ]),
+                    icon: const Icon(Icons.add, color: Palette.pewter),
                   ),
                 ],
               ),

@@ -412,6 +412,12 @@ final class RecipeGroup extends Equatable {
 
   int get toBuy => missing.length;
 
+  /// The ingredients left out of this recipe's shopping: "already have the
+  /// cream". They can be brought back.
+  IList<Ingredient> get excluded => recipe.ingredients
+      .where((ingredient) => entry.excluded.contains(ingredient.id))
+      .toIList();
+
   /// How many ingredients are bought: ticked, or ticked and cleared.
   int get bought =>
       items

@@ -357,9 +357,13 @@ void main() {
       final kitchens = await open(tester);
       await tester.tap(find.text('By recipe'));
       await settle(tester);
+      final before = kitchens.state;
       await tester.tap(find.text('Remove'));
       await settle(tester);
       expect(kitchens.state.planned, isEmpty);
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(kitchens.state, before);
     });
 
     testWidgets('the by-recipe view can leave out an ingredient', (
@@ -371,6 +375,26 @@ void main() {
       await tester.tap(find.byTooltip('Already have this').first);
       await settle(tester);
       expect(kitchens.state.planned.single.excluded, contains('onion'));
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(kitchens.state.planned.single.excluded, isEmpty);
+    });
+
+    testWidgets('the by-recipe view can bring back what was left out', (
+      tester,
+    ) async {
+      final kitchens = await open(
+        tester,
+        entries: [
+          entryFor('soup', excluded: ['onion']),
+        ],
+      );
+      await tester.tap(find.text('By recipe'));
+      await settle(tester);
+      expect(find.text('Already have onion'), findsOneWidget);
+      await tester.tap(find.byTooltip('Buy this after all'));
+      await settle(tester);
+      expect(kitchens.state.planned.single.excluded, isEmpty);
     });
 
     testWidgets('the by-recipe view can mark a recipe as bought, with undo', (

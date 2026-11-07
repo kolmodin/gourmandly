@@ -878,6 +878,7 @@ void main() {
       final group = byRecipe(state).recipes.single;
       expect(group.toBuy, 1);
       expect(group.bought, 1);
+      expect([for (final i in group.excluded) i.id], ['cream']);
     });
 
     test('an item without a quantity is just its name', () {
